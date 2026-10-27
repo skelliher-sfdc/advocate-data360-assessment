@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advocate Health - Org Readiness Assessment</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #2d3748;
+            line-height: 1.6;
+            padding: 2rem;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        header {
+            background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%);
+            color: white;
+            padding: 2rem 3rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        header h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+        header p { opacity: 0.9; font-size: 0.95rem; }
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .metric-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        .metric-card .value { font-size: 2rem; font-weight: 700; color: #2b6cb0; }
+        .metric-card .label { font-size: 0.85rem; color: #718096; margin-top: 0.25rem; }
+        section {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        section h2 {
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+        }
+        .chart-container {
+            position: relative;
+            height: 350px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f7fafc; font-weight: 600; color: #4a5568; }
+        tr:hover { background: #f7fafc; }
+        .score-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .score-high { background: #c6f6d5; color: #22543d; }
+        .score-mid { background: #fefcbf; color: #744210; }
+        .score-low { background: #fed7d7; color: #742a2a; }
+        .score-none { background: #e2e8f0; color: #4a5568; }
+        .score-cancelled { background: #4a5568; color: #fff; }
+        tr.cancelled { opacity: 0.55; text-decoration: line-through; }
+        tr.cancelled td:last-child, tr.cancelled td:first-child { text-decoration: none; }
+        .org-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .org-card h3 { margin-bottom: 1rem; color: #2d3748; }
+        .org-card .evidence { font-size: 0.85rem; color: #4a5568; margin-top: 0.5rem; }
+        .evidence-item { padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0; }
+        .evidence-label { font-weight: 600; color: #2b6cb0; }
+        .progress-bar-wrap { margin-bottom: 1.5rem; }
+        .progress-bar-track {
+            background: #e2e8f0;
+            border-radius: 999px;
+            height: 24px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            background: linear-gradient(90deg, #38a169 0%, #48bb78 100%);
+            color: white;
+            height: 100%;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-align: right;
+            padding-right: 0.75rem;
+            line-height: 24px;
+            min-width: 2.5rem;
+        }
+        .progress-caption { font-size: 0.85rem; color: #718096; margin-top: 0.5rem; }
+        .roadmap {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+        }
+        .roadmap-phase {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 1.5rem;
+            border-left: 4px solid #2b6cb0;
+        }
+        .roadmap-phase h4 { margin-bottom: 0.75rem; color: #2b6cb0; }
+        .roadmap-phase ul { list-style: none; padding: 0; }
+        .roadmap-phase li { padding: 0.25rem 0; font-size: 0.9rem; }
+        .roadmap-phase li::before { content: "\2022"; color: #2b6cb0; margin-right: 0.5rem; }
+        .pending { opacity: 0.6; font-style: italic; }
+        /* ---- Tabs ---- */
+        .tab-nav {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #e2e8f0;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            padding: 0.85rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #718096;
+            cursor: pointer;
+            margin-bottom: -2px;
+            transition: color 0.15s, border-color 0.15s;
+            font-family: inherit;
+        }
+        .tab-btn:hover { color: #2b6cb0; }
+        .tab-btn.active { color: #1a365d; border-bottom-color: #2b6cb0; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+        /* ---- Explainer / glossary ---- */
+        .explainer { border-left: 5px solid #2b6cb0; }
+        .glossary-intro { font-size: 0.95rem; color: #4a5568; margin-bottom: 1.5rem; }
+        .glossary-h3 {
+            font-size: 1.05rem;
+            color: #1a365d;
+            margin: 1.75rem 0 0.75rem;
+        }
+        .glossary-note { font-size: 0.9rem; color: #4a5568; margin-bottom: 1rem; }
+        .scale-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 0.75rem;
+        }
+        .scale-chip {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            font-size: 0.85rem;
+        }
+        .scale-num {
+            flex: 0 0 auto;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            color: #fff;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .scale-meaning { color: #718096; }
+        .glossary-dims {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1rem;
+        }
+        .glossary-dim {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 1.25rem;
+            border-left: 4px solid #2b6cb0;
+        }
+        .glossary-dim-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .glossary-dim-name { font-weight: 700; color: #1a365d; font-size: 1rem; }
+        .glossary-weight { font-size: 0.75rem; color: #718096; }
+        .kind-badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.15rem 0.5rem;
+            border-radius: 10px;
+        }
+        .kind-computed { background: #e9d8fd; color: #553c9a; }
+        .kind-direct { background: #bee3f8; color: #2c5282; }
+        .glossary-def { font-size: 0.9rem; color: #2d3748; margin-bottom: 0.5rem; }
+        .glossary-hilo { font-size: 0.85rem; color: #4a5568; margin-bottom: 0.5rem; }
+        .glossary-computed { font-size: 0.8rem; color: #718096; font-style: italic; }
+        .glossary-list { margin: 0 0 1rem 1.25rem; font-size: 0.9rem; color: #4a5568; }
+        .glossary-list li { padding: 0.2rem 0; }
+        .audience-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .audience-card {
+            border-radius: 8px;
+            padding: 1.25rem;
+            font-size: 0.9rem;
+        }
+        .audience-card:first-child { background: #ebf8ff; border-left: 4px solid #3182ce; }
+        .audience-card:last-child { background: #f0fff4; border-left: 4px solid #38a169; }
+        .audience-card h4 { margin-bottom: 0.5rem; color: #1a365d; }
+        /* ---- Tools roadmap ---- */
+        .rm-intro { font-size: 0.95rem; color: #4a5568; margin-bottom: 1rem; }
+        .rm-updated { font-size: 0.8rem; color: #718096; }
+        .rm-legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; margin: 0 0 1.25rem; font-size: 0.85rem; }
+        .rm-legend > span { display: inline-flex; align-items: center; gap: 0.4rem; }
+        .rm-swatch { width: 1.4rem; height: 0.9rem; border-radius: 3px; display: inline-block; }
+        .rm-milestones { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; }
+        .rm-milestone { background: #f7fafc; border-left: 4px solid #1a365d; border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.88rem; }
+        .rm-milestone .when { font-weight: 700; color: #1a365d; display: block; }
+        .rm-scroll { overflow-x: auto; }
+        .rm-table { table-layout: fixed; min-width: 900px; font-size: 0.82rem; }
+        .rm-table th, .rm-table td { padding: 0.4rem 0.45rem; vertical-align: middle; }
+        .rm-table thead th { text-align: center; }
+        .rm-table thead th.rm-sys { text-align: left; }
+        .rm-table .rm-sys { width: 21%; background: #fff; font-weight: 400; }
+        .rm-table .rm-sys strong { display: block; color: #2d3748; }
+        .rm-status { display: block; font-size: 0.75rem; color: #718096; }
+        .rm-table tr.rm-lane th { background: #edf2f7; color: #1a365d; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+        .rm-table tr:hover { background: transparent; }
+        .rm-bar { border-radius: 6px; padding: 0.35rem 0.5rem; font-weight: 600; line-height: 1.25; }
+        .rm-kind { display: block; font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.85; }
+        .rm-assess { background: #fefcbf; color: #744210; border: 1px dashed #b7791f; }
+        .rm-connect { background: #bee3f8; color: #1a365d; }
+        .rm-launch { background: #c6f6d5; color: #22543d; }
+        .rm-consolidate { background: #e9d8fd; color: #44337a; }
+        .rm-replace { background: #feebc8; color: #7b341e; }
+        .rm-retire { background: #e2e8f0; color: #2d3748; }
+        .rm-run { background: #ffffff; color: #4a5568; border: 1px solid #a0aec0; }
+        .rm-none { color: #a0aec0; font-style: italic; }
+        .rm-potential { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 10px; font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
+        .rm-p-high { background: #1a365d; color: #ffffff; }
+        .rm-p-medium { background: #2b6cb0; color: #ffffff; }
+        .rm-p-low { background: #ebf8ff; color: #1a365d; border: 1px solid #90cdf4; }
+        .rm-p-none { background: #ffffff; color: #4a5568; border: 1px solid #a0aec0; }
+        .rm-p-tbc { background: #edf2f7; color: #4a5568; border: 1px dashed #a0aec0; }
+        .rm-pv { font-size: 0.85rem; }
+        .rm-pv th[scope="row"] { background: transparent; width: 16%; }
+        .rm-watch { margin: 0 0 0 1.25rem; }
+        .rm-watch li { margin-bottom: 0.6rem; font-size: 0.9rem; }
+        @media print {
+            .tab-nav { display: none; }
+            .tab-panel { display: block !important; }
+            .rm-table { min-width: 0; }
+        }
+        @media (max-width: 768px) {
+            .chart-grid { grid-template-columns: 1fr; }
+            .roadmap { grid-template-columns: 1fr; }
+            body { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Advocate Health - Org Readiness Assessment</h1>
+        <p>Salesforce, Marketing Cloud and connected systems | Data 360 Implementation | Generated October 27, 2026</p>
+    </header>
+
+    <nav class="tab-nav" role="tablist">
+        <button class="tab-btn active" role="tab" aria-selected="true" data-tab="dashboard">Dashboard</button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-tab="roadmap">Roadmap</button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-tab="explainer">How to Read This Assessment</button>
+    </nav>
+
+    <div id="tab-dashboard" class="tab-panel active" role="tabpanel">
+    <div class="metrics-row">
+        <div class="metric-card">
+            <div class="value">14/22</div>
+            <div class="label">Systems Assessed (in scope)</div>
+        </div>
+        <div class="metric-card">
+            <div class="value">3.21</div>
+            <div class="label">Average Readiness (out of 5)</div>
+        </div>
+        <div class="metric-card">
+            <div class="value">Consent Maturity</div>
+            <div class="label">Top Gap Dimension</div>
+        </div>
+        <div class="metric-card">
+            <div class="value">Data Accessibility</div>
+            <div class="label">Strongest Dimension</div>
+        </div>
+    </div>
+
+    <section>
+        <h2>Executive Summary - Ranked Scorecard</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>System</th>
+                    <th>Readiness</th>
+                    <th>Label</th>
+                    <th>REWIRE 2030 Value</th>
+                    <th>Top Gap</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+            <td>1</td>
+            <td>SE - Carolinas Medical Center Atrium Health</td>
+            <td><strong>4.00</strong></td>
+            <td><span class="score-badge score-high">4.00 - Strong support</span></td>
+            <td>3.41 - Medium</td>
+            <td>Consent Maturity</td>
+            <td>Complete</td>
+        </tr>
+<tr>
+            <td>2</td>
+            <td>SE - Marketing Cloud</td>
+            <td><strong>4.00</strong></td>
+            <td><span class="score-badge score-high">4.00 - Strong support</span></td>
+            <td>4.17 - High</td>
+            <td>Identity Data Quality</td>
+            <td>Complete</td>
+        </tr>
+<tr>
+            <td>3</td>
+            <td>MW - Marketing Cloud</td>
+            <td><strong>3.94</strong></td>
+            <td><span class="score-badge score-high">3.94 - Strong support</span></td>
+            <td>4.05 - High</td>
+            <td>Consent Maturity</td>
+            <td>Complete</td>
+        </tr>
+<tr>
+            <td>4</td>
+            <td>MW - Org 7 Golden Org</td>
+            <td><strong>3.82</strong></td>
+            <td><span class="score-badge score-high">3.82 - Strong support</span></td>
+            <td>3.62 - High</td>
+            <td>Consent Maturity</td>
+            <td>Complete</td>
+        </tr>
+<tr>
+            <td>5</td>
+            <td>CipherHealth</td>
+            <td><strong>3.43</strong></td>
+            <td><span class="score-badge score-mid">3.43 - Partial readiness</span></td>
+            <td>3.50 - High</td>
+            <td>Data Readiness</td>
+            <td>Complete</td>
+        </tr>
+<tr>
+            <td>6</td>
+            <td>NRC Health</td>
+            <td><strong>3.40</strong></td>
+            <td><span class="score-badge score-mid">3.40 - Partial readiness</span></td>
+            <td>3.25 - Medium</td>
+            <td>Data Readiness</td>
+            <td>Complete</td>
+        </tr>
+<tr>
+            <td>7</td>
+            <td>MW Org 6 - Classes and Events</td>
+            <td><strong>3.38</strong></td>
+            <td><span class="score-badge score-mid">3.38 - Partial readiness</span></td>
+            <td>3.11 - Medium</td>
+            <td>Consent Maturity</td>
+            <td>Complete</td>
+        </tr>
+<tr>
+            <td>8</td>
+            <td>MW - Org 3 Aurora Consolidated Labs</td>
+            <td><strong>3.31</strong></td>
+            <td><span class="score-badge score-mid">3.31 - Partial readiness</span></td>
+            <td>2.63 - Medium</td>
+            <td>Event Readiness</td>
+            <td>Complete</td>
+        </tr>
+<tr>
+            <td>9</td>
+            <td>MW - Employer Services</td>
+            <td><strong>2.97</strong></td>
+            <td><span class="score-badge score-mid">2.97 - Partial readiness</span></td>
+            <td>2.41 - Low</td>
+            <td>Consent Maturity</td>
+            <td>Complete</td>
+        </tr>
+<tr>
+            <td>10</td>
+            <td>MW - Org 2 Mission and Spiritual Care</td>
+            <td><strong>2.88</strong></td>
+            <td><span class="score-badge score-mid">2.88 - Partial readiness</span></td>
+            <td>2.60 - Medium</td>
+            <td>Event Readiness</td>
+            <td>Complete</td>
+        </tr>
+<tr>
+            <td>11</td>
+            <td>Finance</td>
+            <td><strong>2.72</strong></td>
+            <td><span class="score-badge score-mid">2.72 - Partial readiness</span></td>
+            <td>Not relevant</td>
+            <td>Consent Maturity</td>
+            <td>Complete</td>
+        </tr>
+<tr>
+            <td>12</td>
+            <td>SE - Employer Solutions</td>
+            <td><strong>2.62</strong></td>
+            <td><span class="score-badge score-mid">2.62 - Partial readiness</span></td>
+            <td>2.25 - Low</td>
+            <td>Identity Data Quality</td>
+            <td>Complete</td>
+        </tr>
+<tr>
+            <td>13</td>
+            <td>Form.io</td>
+            <td><strong>2.31</strong></td>
+            <td><span class="score-badge score-low">2.31 - Significant gaps</span></td>
+            <td>2.57 - Medium</td>
+            <td>Consent Maturity</td>
+            <td>Complete</td>
+        </tr>
+<tr>
+            <td>14</td>
+            <td>Yext</td>
+            <td><strong>2.19</strong></td>
+            <td><span class="score-badge score-low">2.19 - Significant gaps</span></td>
+            <td>2.83 - Medium</td>
+            <td>Consent Maturity</td>
+            <td>Complete</td>
+        </tr>
+<tr class='pending'>
+            <td>-</td>
+            <td>Blackbaud / Raiser's Edge NXT</td>
+            <td><strong>-</strong></td>
+            <td><span class="score-badge score-none">Not started</span></td>
+            <td>-</td>
+            <td>-</td>
+            <td>Not started</td>
+        </tr>
+<tr class='pending'>
+            <td>-</td>
+            <td>Cerner / HealtheIntent</td>
+            <td><strong>-</strong></td>
+            <td><span class="score-badge score-none">Not started</span></td>
+            <td>-</td>
+            <td>-</td>
+            <td>Not started</td>
+        </tr>
+<tr class='pending'>
+            <td>-</td>
+            <td>Combinaut / Sparkle Events</td>
+            <td><strong>-</strong></td>
+            <td><span class="score-badge score-none">Not started</span></td>
+            <td>-</td>
+            <td>-</td>
+            <td>Not started</td>
+        </tr>
+<tr class='pending'>
+            <td>-</td>
+            <td>EPIC / MyChart / Epic Rover (MW Instance)</td>
+            <td><strong>-</strong></td>
+            <td><span class="score-badge score-none">Not started</span></td>
+            <td>-</td>
+            <td>-</td>
+            <td>Not started</td>
+        </tr>
+<tr class='pending'>
+            <td>-</td>
+            <td>EPIC / MyChart / Epic Rover (SE Instance)</td>
+            <td><strong>-</strong></td>
+            <td><span class="score-badge score-none">Not started</span></td>
+            <td>-</td>
+            <td>-</td>
+            <td>Not started</td>
+        </tr>
+<tr class='pending'>
+            <td>-</td>
+            <td>Genesys</td>
+            <td><strong>-</strong></td>
+            <td><span class="score-badge score-none">Not started</span></td>
+            <td>-</td>
+            <td>-</td>
+            <td>Not started</td>
+        </tr>
+<tr class='pending'>
+            <td>-</td>
+            <td>Hippocratic</td>
+            <td><strong>-</strong></td>
+            <td><span class="score-badge score-none">Not started</span></td>
+            <td>-</td>
+            <td>-</td>
+            <td>Not started</td>
+        </tr>
+<tr class='pending'>
+            <td>-</td>
+            <td>Twilio</td>
+            <td><strong>-</strong></td>
+            <td><span class="score-badge score-none">Not started</span></td>
+            <td>-</td>
+            <td>-</td>
+            <td>Not started</td>
+        </tr>
+<tr class='cancelled'>
+            <td>-</td>
+            <td>SE - Wake Forest Baptist Health</td>
+            <td><strong>-</strong></td>
+            <td><span class="score-badge score-cancelled">Cancelled</span></td>
+            <td>-</td>
+            <td>-</td>
+            <td>Cancelled</td>
+        </tr>
+
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>Dimension Analysis</h2>
+        <div class="chart-grid">
+            <div>
+                <h3 style="margin-bottom:1rem; font-size:1rem;">Comparative Radar - All Assessed Orgs</h3>
+                <div class="chart-container">
+                    <canvas id="radarChart"></canvas>
+                </div>
+            </div>
+            <div>
+                <h3 style="margin-bottom:1rem; font-size:1rem;">Overall Scores - Ranked</h3>
+                <div class="chart-container">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>Assessment Progress</h2>
+        
+    <div class="progress-bar-wrap">
+        <div class="progress-bar-track">
+            <div class="progress-bar-fill" style="width:64%;">64%</div>
+        </div>
+        <p class="progress-caption">14 of 22 in-scope systems assessed
+        &middot; 8 not yet started &middot; 1 out of scope</p>
+    </div>
+    <div class="roadmap">
+        <div class="roadmap-phase" style="border-left-color: #38a169;">
+            <h4>Assessed &amp; Scored (14)</h4>
+            <p style="font-size:0.8rem;color:#718096;margin-bottom:0.5rem;">Completed: readiness score shown.</p>
+            <ul><li>SE - Carolinas Medical Center Atrium Health <strong>(4.00)</strong></li><li>SE - Marketing Cloud <strong>(4.00)</strong></li><li>MW - Marketing Cloud <strong>(3.94)</strong></li><li>MW - Org 7 Golden Org <strong>(3.82)</strong></li><li>CipherHealth <strong>(3.43)</strong></li><li>NRC Health <strong>(3.40)</strong></li><li>MW Org 6 - Classes and Events <strong>(3.38)</strong></li><li>MW - Org 3 Aurora Consolidated Labs <strong>(3.31)</strong></li><li>MW - Employer Services <strong>(2.97)</strong></li><li>MW - Org 2 Mission and Spiritual Care <strong>(2.88)</strong></li><li>Finance <strong>(2.72)</strong></li><li>SE - Employer Solutions <strong>(2.62)</strong></li><li>Form.io <strong>(2.31)</strong></li><li>Yext <strong>(2.19)</strong></li></ul>
+        </div>
+        <div class="roadmap-phase" style="border-left-color: #d69e2e;">
+            <h4>Not Yet Started (8)</h4>
+            <p style="font-size:0.8rem;color:#718096;margin-bottom:0.5rem;">In scope — awaiting discovery &amp; scoring.</p>
+            <ul><li>Blackbaud / Raiser's Edge NXT</li><li>Cerner / HealtheIntent</li><li>Combinaut / Sparkle Events</li><li>EPIC / MyChart / Epic Rover (MW Instance)</li><li>EPIC / MyChart / Epic Rover (SE Instance)</li><li>Genesys</li><li>Hippocratic</li><li>Twilio</li></ul>
+        </div>
+        <div class="roadmap-phase" style="border-left-color: #718096;">
+            <h4>Out of Scope (1)</h4>
+            <p style="font-size:0.8rem;color:#718096;margin-bottom:0.5rem;">Cancelled — not part of the assessment.</p>
+            <ul><li>SE - Wake Forest Baptist Health</li></ul>
+        </div>
+    </div>
+    </section>
+
+    <section>
+        <h2>System Detail Cards</h2>
+        <div class="org-card">
+        <h3>SE - Carolinas Medical Center Atrium Health - Readiness: 4.00/5 (Strong support) | REWIRE 2030 value: 3.41 - Medium</h3>
+        <div class="evidence-item">
+            <span class="evidence-label">Initiative Contribution:</span> 3.41
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Identity Data Quality:</span> 4.00
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Readiness:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong. Business: the data is complete and trustworthy enough to run daily patient operations, and contact details (name, phone, email, address) are automatically standardized on entry so records stay clean at scale. Technical: multi-source data (Marketing, Contact Center/Reminded Care, PRM, Clinical Trials, Academic Alliance, NCCT) is well-structured across 7,292,631 accounts and 5M contacts. Known gap: web-form field labeling is understood by only one person and is undocumented, which is a key-person risk for anyone mapping those fields to Data 360.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Event Readiness:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong. Business: interaction history (appointments, calls, Reminded Care outreach) is retained over time and updates propagate to other systems within minutes, so staff act on current information. Technical: multiple data-flow methods keep event timelines fresh; outreach cases from the Reminded Care contact-center program are tracked as events, giving good near-real-time signal for triggered use cases.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Accessibility:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong. Business: data can be extracted and shared through many supported channels, so integrations are not blocked by access. Technical: DataloaderIO, Web-to-Case/Web-to-Lead, the Marketing Cloud Connector, secure API connections, scheduled file drops, and data-warehouse feeds are all in use — a rich set of extraction paths that will simplify Data 360 ingestion.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Consent Maturity:</span> 3.00
+            <span class="evidence"> - Score 3 — Partial. Business: opt-in/opt-out is tracked per channel (email, SMS, phone), but stakeholders disagree on where the authoritative consent record lives, which creates risk of contacting someone who opted out. Technical: consent history is only partially retained; one owner reports channel-level tracking is clear, while another says Marketing Cloud is the enforcing system. The source-of-truth for consent must be settled before activation.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Scale & Velocity:</span> 5.00
+            <span class="evidence"> - Score 5 — Fully ready. Business: this is the largest, most active org and comfortably operates at enterprise scale. Technical: ~7.3M accounts, 5M contacts, and 2.7M cases with an estimated 1K–100K record updates per day — volume and velocity align well with Data 360 ingestion tiers.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Downstream Readiness:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong. Business: the org can receive and act on updates pushed in from other systems, so Data 360 insights could be written back and used operationally. Technical: it already accepts triggered updates from outside systems and has multiple outbound integration paths, including the Marketing Cloud Connector — a solid foundation for Data Actions with minor configuration.</span>
+        </div>
+
+        <p style='margin-top:1rem'><strong>Key Observations:</strong> The largest and most complex Southeast org and the strongest overall performer. It is multi-tenant, spanning Marketing, the Contact Center (Reminded Care), Provider Relationship Management, Clinical Trials, Academic Alliance, and NCCT, and it uses a UMPI-based deduplication rule for identity. Data maturity, scale, and integration breadth are all high. The two things holding it back from top marks are (1) consent authority is contested across owners and (2) critical web-form field knowledge is undocumented and held by a single person.</p>
+        <p><strong>Recommendations:</strong> Treat as a top-priority, early Data 360 candidate. Before onboarding: document the web-form field mappings so they are not dependent on one person; strengthen duplicate handling from passive warnings to hard stops; and formally decide whether Salesforce or Marketing Cloud is the consent source of truth so opt-outs are enforced consistently.</p>
+    </div>
+<div class="org-card">
+        <h3>SE - Marketing Cloud - Readiness: 4.00/5 (Strong support) | REWIRE 2030 value: 4.17 - High</h3>
+        <div class="evidence-item">
+            <span class="evidence-label">Initiative Contribution:</span> 4.17
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Identity Data Quality:</span> 4.00
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Readiness:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong. Business: subscriber records are very complete and contact details are clean and dependable, so campaigns reach the right people. Technical: built-in validation on entry, plus preference tracking segmented by business purpose, keeps the data well-structured across multiple business units.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Event Readiness:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong support. Business: captures engagement events (sends, opens, clicks, journey entries/exits, form and booking interactions) in near real time, enabling triggered outreach. Technical: journey/event APIs and real-time triggers are available; event capture is timely rather than batch-only.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Accessibility:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong support. Business: engagement data can be accessed operationally when needed rather than only via manual export. Technical: documented REST/SOAP APIs and standard connectors (including native Data 360 connectivity) support programmatic extraction and activation.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Consent Maturity:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong. Business: this org has the most mature consent model in the estate — preferences are tracked both by channel and by business purpose, and by region — so outreach can be tailored and compliant. Technical: recent preference-change dates are retained (partial history); this business-purpose-aware model is a good candidate to become the enterprise consent standard.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Scale & Velocity:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong. Business: a high-volume, actively used platform across several business units. Technical: 1M–10M records with 1K–10K updates/day — scale and velocity align well with Data 360 ingestion.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Downstream Readiness:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong support. Business: Marketing Cloud is a native destination for Data 360 outputs — Data 360 segments and calculated insights activate directly into Marketing Cloud journeys out of the box, so the platform can act on insights immediately. Technical: first-class Data 360 activation target (Marketing Cloud activation / data extensions); no new architecture required to receive audiences and attributes, though write-back of engagement events to source systems remains a separate effort.</span>
+        </div>
+
+        <p style='margin-top:1rem'><strong>Key Observations:</strong> The Southeast counterpart to the Midwest Marketing Cloud, spanning multiple business units: Atrium (patient), Wake Forest (Clinical Trials, School of Medicine, Research), and Internal Communications. It runs marketing, retention, HRA, post-visit, and prenatal journeys, integrates with Form.io (which saw a bot attack in January), and supports 77 contact-center retention segments. Its consent model is stronger than the Midwest instance. The main concern is low confidence in distinguishing similar people (identity disambiguation).</p>
+        <p><strong>Recommendations:</strong> Strong Phase 1 candidate as an engagement data source. Address the person-disambiguation weakness so subscribers resolve to the right individual, and use this org's business-purpose consent model as the template for an enterprise consent standard.</p>
+    </div>
+<div class="org-card">
+        <h3>MW - Marketing Cloud - Readiness: 3.94/5 (Strong support) | REWIRE 2030 value: 4.05 - High</h3>
+        <div class="evidence-item">
+            <span class="evidence-label">Initiative Contribution:</span> 4.05
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Identity Data Quality:</span> 4.25
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Readiness:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong. Business: subscriber records are very complete with clean contact details, so campaigns are well-targeted. Technical: built-in validation plus a standard synchronization from Health Cloud keeps the data structured and reliable.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Event Readiness:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong support. Business: captures engagement events (sends, opens, clicks, journey entries/exits, form and booking interactions) in near real time, enabling triggered outreach. Technical: journey/event APIs and real-time triggers are available; event capture is timely rather than batch-only.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Accessibility:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong support. Business: engagement data can be accessed operationally when needed rather than only via manual export. Technical: documented REST/SOAP APIs and standard connectors (including native Data 360 connectivity) support programmatic extraction and activation.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Consent Maturity:</span> 3.00
+            <span class="evidence"> - Score 3 — Partial. Business: email and SMS opt-outs are tracked per channel, and opt-outs flow back to Health Cloud, so unsubscribes are largely honored. Technical: change dates are only partially stored; a post-LUE journey enforces opt-out back to Health Cloud, but full auditable history is incomplete.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Scale & Velocity:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong. Business: a high-volume engagement platform driving active patient journeys. Technical: 1M–10M subscribers with 1K–10K updates/day and minutes-speed propagation — well within Data 360 ingestion expectations.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Downstream Readiness:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong support. Business: Marketing Cloud is a native destination for Data 360 outputs — Data 360 segments and calculated insights activate directly into Marketing Cloud journeys out of the box, so the platform can act on insights immediately. Technical: first-class Data 360 activation target (Marketing Cloud activation / data extensions); no new architecture required to receive audiences and attributes, though write-back of engagement events to source systems remains a separate effort.</span>
+        </div>
+
+        <p style='margin-top:1rem'><strong>Key Observations:</strong> A high-volume patient-engagement platform tightly coupled to the Midwest Golden Org through the Marketing Cloud Connector (a 15-minute multi-org sync). It runs active journeys including HRA, Mammography, LiveWell, and Permission, across email and SMS, with roughly 80% email capture and MuleSoft feeding data from SFTP. The defining limitation is that it cannot accept inbound updates — it is an engagement sink, not a system that can act on Data 360 write-back.</p>
+        <p><strong>Recommendations:</strong> Include in Phase 1 as an engagement data source. Plan for the downstream write-back gap by designing an activation/architecture path, and consider replicating engagement data to Snowflake for analytics.</p>
+    </div>
+<div class="org-card">
+        <h3>MW - Org 7 Golden Org - Readiness: 3.82/5 (Strong support) | REWIRE 2030 value: 3.62 - High</h3>
+        <div class="evidence-item">
+            <span class="evidence-label">Initiative Contribution:</span> 3.62
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Identity Data Quality:</span> 3.69
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Readiness:</span> 4.00
+            <span class="evidence"> - Core patient, appointment, and interaction data available and well-structured. Minor gaps in historical journey data.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Event Readiness:</span> 4.00
+            <span class="evidence"> - Appointment events, call interactions, and email engagement captured. Some timing gaps in batch-processed records.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Accessibility:</span> 4.00
+            <span class="evidence"> - Standard Salesforce APIs available. Connected app configured. Minor rate limit considerations at scale.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Consent Maturity:</span> 3.00
+            <span class="evidence"> - Consent preferences exist at account level but channel-specific opt-in/out not fully enforced across all touchpoints.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Scale & Velocity:</span> 4.00
+            <span class="evidence"> - 7,241,226 person accounts in the org description workbook, against an earlier estimate of about 500,000 patient records. The count needs confirming, and cleanup of inactive, non-patient or duplicate records may lower the volume. Daily sync cadence viable.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Downstream Readiness:</span> 4.00
+            <span class="evidence"> - Score 4. Strong support. Business: this org can receive Data 360 segments and insights out of the box. Technical: Salesforce orgs are native Data 360 activation targets. Writing events back into other source systems is a separate effort. Earlier evidence: Can receive Data 360 calculated insights but requires custom field mapping. No native Data 360 connector configured yet.</span>
+        </div>
+
+        <p style='margin-top:1rem'><strong>Key Observations:</strong> Core patient org with strongest relevance to booking completion, PCP engagement, and system-of-systems integration for the Patient persona. High data maturity overall with consent as the primary gap.</p>
+        <p><strong>Recommendations:</strong> Prioritize for early Data 360 onboarding. Address consent model gaps before production activation. Validate identity coverage for cross-org matching.</p>
+    </div>
+<div class="org-card">
+        <h3>CipherHealth - Readiness: 3.43/5 (Partial readiness) | REWIRE 2030 value: 3.50 - High</h3>
+        <div class="evidence-item">
+            <span class="evidence-label">Initiative Contribution:</span> 3.50
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Identity Data Quality:</span> 3.40
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Readiness:</span> 3.00
+            <span class="evidence"> - Score 3 — Partial readiness. Business: Duplicates are rare (all four teams say 'almost never') and calls or texts reaching the wrong person are mostly infrequent, but one medication adherence team sees missing or out-of-date contact details 'most weeks'. Three of the four teams want a single view of the patient (business survey). Technical: Per the vendor guide, profiles are built from Epic admission, discharge and transfer messages and from SFTP files, then matched and merged automatically on the encounter medical record number (MRN). No data dictionary has been shared yet, and the total profile count is not known.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Event Readiness:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong support. Business: Texts, calls, surveys, responses, wrong-number results, queue items and opt-outs are all logged, at 10,000 to 100,000 touches and as many responses a day (technical survey). Technical: Epic messages arrive as events happen, and results are written back to Epic. Not a 5 because the refresh timing of the Snowflake share is not stated yet (orientation notes).</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Accessibility:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong support. Business: The owners report no known limits on accessing or moving Cipher data (technical survey), and a project is under way to extend the Snowflake feed beyond medication adherence (orientation notes). Technical: Cipher offers Snowflake Secure Data Sharing of patient, encounter and interaction records (vendor guide). Data 360 could read them through Nexus, Advocate's Snowflake data platform, in a draft design that is not validated yet. Refresh timing is not stated. The score would drop to 3 if the Snowflake project stalls.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Consent Maturity:</span> 3.00
+            <span class="evidence"> - Score 3 — Partial readiness. Business: Cipher has a defined opt-out model. Standard stop keywords end outreach from that program to both of the patient's phone numbers, while other programs continue (vendor guide). Cipher only knows about opt-outs captured in Cipher, so an opt-out given in MyChart or Marketing Cloud may not reach it. Technical: Opt-out status reaches Epic only in part, where flow sheets are used. No do-not-contact feed comes in from Epic or an enterprise preference system (technical survey). OneTrust, the planned enterprise consent platform, is not live yet, and which opt-out level takes precedence is not decided.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Scale & Velocity:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong support. Business: 100,000 to 999,999 patients are actively enrolled, with 10,000 to 100,000 touches and responses a day and up to 25% growth expected in 12 to 24 months (technical survey). Technical: Epic sends over 100,000 admission, discharge and transfer messages a day, plus 21 to 100 SFTP files a week of 5,000 to 50,000 rows. An older audit shows annual volumes 15 to 150 times lower. That audit appears to cover one region only, so reconcile the two before sizing.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Downstream Readiness:</span> 3.00
+            <span class="evidence"> - Score 3 — Partial readiness. Business: Cipher is mainly a source, but it is also an outreach channel that Data 360 could feed with audiences and do-not-contact lists. It already takes automated SFTP patient files, pre-sorted by team and use case (orientation notes). Technical: Because a file route exists, sending Data 360 audiences to Cipher by SFTP looks possible but is not confirmed. Cipher receives no do-not-contact feed today, and its results go back to Epic rather than to Data 360.</span>
+        </div>
+
+        <p style='margin-top:1rem'><strong>Key Observations:</strong> Enterprise platform for automated and live patient outreach (post-discharge, home health, medication adherence and value-based care screening), used by four teams. Epic feeds it as events happen, and users say duplicates are rare. The gaps are out-of-date contact details on one team, program-level opt-outs with no incoming do-not-contact feed, and matching on MRN until the enterprise patient ID (EPI) is available. Only medication adherence data reaches Snowflake today. Outreach on social needs such as housing, food and transportation is moving to Hippocratic AI, and the Southeast rollout is partial.</p>
+        <p><strong>Recommendations:</strong> A strong early source for Message Orchestration. Finish the Cipher to Snowflake project for the teams that stay on Cipher, then bring the touch log, opt-out events, outcomes and enrollment into Data 360 through Nexus. Ask whether the enterprise patient ID can be added as a matching option, and whether Cipher can take a do-not-contact file before each send.</p>
+    </div>
+<div class="org-card">
+        <h3>NRC Health - Readiness: 3.40/5 (Partial readiness) | REWIRE 2030 value: 3.25 - Medium</h3>
+        <div class="evidence-item">
+            <span class="evidence-label">Initiative Contribution:</span> 3.25
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Identity Data Quality:</span> 3.50
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Readiness:</span> 3.00
+            <span class="evidence"> - Score 3 — Partial readiness. Business: Returned surveys are tied to the patient, except cases that CMS (Centers for Medicare and Medicaid Services) rules keep anonymous, and a curated data product was released around Oct 22. The gaps are on the sending side: surveys sent, channel, bounces and non-responders are not in Nexus, Advocate's Snowflake data platform (orientation call, Oct 26). Technical: The Enterprise Business Intelligence (EBI) team curates a raw NRC table in Nexus by return date. The Epic feed carries the medical record number (MRN), encounter, contact details, location and, when included, the provider's NPI (National Provider Identifier). Press Ganey history sits on old Cerner record numbers and is not used.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Event Readiness:</span> 3.00
+            <span class="evidence"> - Score 3 — Partial readiness. Business: Survey-returned events are available, which is what the first use case needs: hold marketing back from a patient who just had a poor experience. Service alerts based on survey comments also exist. Sent, bounce and opt-out events are not available. Technical: Delivery timing to Nexus was not stated and is likely a periodic batch. A link that sends alerts to the Origami safety tool is being built.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Accessibility:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong support. Business: The data already sits in Nexus, which Data 360 reads today, so work can start with data Advocate already holds (orientation call). Technical: The likely route is a zero-copy query from the curated Nexus layer, with EBI as curator. Whether to pull from Nexus or from NRC directly is not decided yet. Sent and opt-out history would need a request to NRC.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Consent Maturity:</span> 3.00
+            <span class="evidence"> - Score 3 — Partial readiness. Business: Every survey includes an opt-out, and opting out stops all surveys for that patient (account-level, as CMS requires). Sites of care can also submit opt-outs by hand. Still unknown: whether an NRC opt-out reaches Epic, and whether NRC honors Advocate's other opt-outs (orientation call). Technical: Opt-out events are not in Nexus. Some returns are anonymous under CMS rules, which limits linking to patient profiles. A privacy review of how survey records link to patient profiles has not happened yet.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Scale & Velocity:</span> 4.00
+            <span class="evidence"> - Score 4 — Strong support. Business: Large. The audit lists about 5 million mailed items a year for Illinois and Wisconsin alone, the team describes 'millions and millions of responses', and email use is growing. Technical: Millions of records. Refresh timing was not stated and is likely periodic, so 4 rather than 5. Daily volume was not stated. Press Ganey history is excluded.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Downstream Readiness:</span> N/A
+            <span class="evidence"> - Not scored yet. Business: So far NRC is described only as a source of survey data for Data 360, not as a destination for Data 360 outputs. Technical: Whether NRC checks other opt-outs before sending, or could take a suppression list from Data 360, was not covered. A planned write-back from Data 360 to Nexus (early 2027) feeds Power BI reporting, not NRC.</span>
+        </div>
+
+        <p style='margin-top:1rem'><strong>Key Observations:</strong> This assessment is based on the orientation call so far. NRC Health runs the required CMS patient surveys, rapid post-visit surveys, consumer insights, and the Transparency product that reviews survey comments before they post to provider profiles. Returned survey data is already in Nexus. Returns carry MRN and encounter and are tied to the patient, except cases kept anonymous under CMS rules. The first use case holds marketing back after a poor experience. The gaps are sent, non-responder and opt-out history, matching on MRN until the enterprise patient ID (EPI) is available, an open privacy review, and an unclear Southeast footprint. Press Ganey is a former vendor.</p>
+        <p><strong>Recommendations:</strong> A strong early candidate, since the data is in Nexus. Start with a zero-copy read from the curated layer: the survey-returned event, comment-based service alerts as a trigger to pause marketing, and the survey opt-out. Ask NRC for sent, non-responder and opt-out history, and confirm what CMS rules allow. Complete the privacy review and map MRN to the enterprise patient ID (EPI).</p>
+    </div>
+<div class="org-card">
+        <h3>MW Org 6 - Classes and Events - Readiness: 3.38/5 (Partial readiness) | REWIRE 2030 value: 3.11 - Medium</h3>
+        <div class="evidence-item">
+            <span class="evidence-label">Initiative Contribution:</span> 3.11
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Identity Data Quality:</span> 3.25
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Readiness:</span> 4.00
+            <span class="evidence"> - Survey: records 'very complete' (4) — standard steps/workflow rules keep important fields filled with only occasional gaps. Understood within the team (3). Data is largely complete though duplicate risk and no data dictionary remain.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Event Readiness:</span> 3.00
+            <span class="evidence"> - Registration updates can be shared in 'seconds' (near-real-time via the experience site into Cases), but no meaningful history is retained (records show current day/week). Core events captured with timing strengths but gaps in retention.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Accessibility:</span> 4.00
+            <span class="evidence"> - Score 4. Strong support. Business: Data 360 can read this org through the standard Salesforce connector, with no new build. Technical: native Salesforce CRM connector to Data 360. Earlier evidence: Data flows out to Sparkle via Cases, but survey reports 'no known data movement' for other reporting tools and outside systems cannot write back (mostly standalone). Limited/one-directional access with the Sparkle dependency.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Consent Maturity:</span> 1.00
+            <span class="evidence"> - Survey: permission/opt-out '1 - Not specifically tracked' — no fields for communication choices, permission, or opt-outs; does not store when/how a preference was collected. No consent model.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Scale & Velocity:</span> 4.00
+            <span class="evidence"> - 100,000 to 1,000,000 people records and 100,000 to 1,000,000 org records — significant volume. Fewer than 100 created/updated per business day tempers velocity, but overall scale is high.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Downstream Readiness:</span> 4.00
+            <span class="evidence"> - Score 4. Strong support. Business: this org can receive Data 360 segments and insights out of the box. Technical: Salesforce orgs are native Data 360 activation targets. Writing events back into other source systems is a separate effort. Earlier evidence: Survey: outside systems cannot write back updates (mostly standalone). Would require significant work to consume Data 360 outputs; existing outbound flow is purpose-built to Sparkle only.</span>
+        </div>
+
+        <p style='margin-top:1rem'><strong>Key Observations:</strong> High-volume (100K-1M) class/event registration org fronted by a public experience site, flowing data into Cases and out to Sparkle. Email is a strong, consistently-captured identifier but there is no unique-ID discipline, no record connections, no consent tracking, and minimal history retention. Strongest strategic relevance to Non Patient and Patient engagement for service lines, system-of-systems, and harmonized community engagement.</p>
+        <p><strong>Recommendations:</strong> Introduce unique-ID/dedup and identity resolution to exploit the strong email coverage. Add consent/preference tracking (currently absent) before any activation. Preserve registration history for journey analytics. Confirm how the Sparkle integration can work with Data 360.</p>
+    </div>
+<div class="org-card">
+        <h3>MW - Org 3 Aurora Consolidated Labs - Readiness: 3.31/5 (Partial readiness) | REWIRE 2030 value: 2.63 - Medium</h3>
+        <div class="evidence-item">
+            <span class="evidence-label">Initiative Contribution:</span> 2.63
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Identity Data Quality:</span> 3.68
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Readiness:</span> 3.00
+            <span class="evidence"> - Survey: records 'good enough for daily work' (3), understood within the team (3) but no central data dictionary/ERD. Duplicate person/org records and stale contact info are known issues. Core data present with moderate gaps.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Event Readiness:</span> 2.00
+            <span class="evidence"> - Manual data entry throughout; no Genesys integration with Call Tracker; no real-time event capture. Client Services logs inquiries manually. Limited event capture.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Accessibility:</span> 4.00
+            <span class="evidence"> - Score 4. Strong support. Business: Data 360 can read this org through the standard Salesforce connector, with no new build. Technical: native Salesforce CRM connector to Data 360. Earlier evidence: Salesforce is not the source of truth (external ACL360 is), updated manually today with only a future 2-way integration desired; outside systems cannot write back. Standard SF APIs exist but integration is minimal/manual.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Consent Maturity:</span> 3.00
+            <span class="evidence"> - Survey: permission/opt-out 'clearly tracked by channel' (4) with separate choices per channel (email, text, phone, mail), but no history of when/how a preference was collected or changed (no audit trail). Present but incomplete.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Scale & Velocity:</span> 3.00
+            <span class="evidence"> - 10,000-100,000 people records and 10,000-100,000 org records; fewer than 100 created/updated per business day. Moderate volume with periodic (largely manual) updates.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Downstream Readiness:</span> 4.00
+            <span class="evidence"> - Score 4. Strong support. Business: this org can receive Data 360 segments and insights out of the box. Technical: Salesforce orgs are native Data 360 activation targets. Writing events back into other source systems is a separate effort. Earlier evidence: Survey: outside systems cannot write back labels/notes/updates (mostly standalone). Limited inbound capability; would require significant integration work to consume Data 360 outputs.</span>
+        </div>
+
+        <p style='margin-top:1rem'><strong>Key Observations:</strong> B2B clinical-laboratory org split across a Business Development team (ACL Lightning: Leads/Opportunities/Accounts) and a Client Services team (Call Tracker: patient results/inquiries, PHI Name+MRN). Salesforce is not the system of record — external ACL360 is — and updates are manual with no Genesys/real-time integration. Identity and channel-level consent are relatively strong; integration, event capture, and downstream write-back are the main gaps.</p>
+        <p><strong>Recommendations:</strong> Prioritize the planned ACL360<->Salesforce 2-way integration and future Epic linkage before Data 360 onboarding. Add duplicate prevention/merge capability and downstream write-back. Confirm whether a data dictionary can be produced.</p>
+    </div>
+<div class="org-card">
+        <h3>MW - Employer Services - Readiness: 2.97/5 (Partial readiness) | REWIRE 2030 value: 2.41 - Low</h3>
+        <div class="evidence-item">
+            <span class="evidence-label">Initiative Contribution:</span> 2.41
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Identity Data Quality:</span> 2.63
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Readiness:</span> 3.00
+            <span class="evidence"> - Score 3 — Partial. Business: the data is good enough for the sales team's daily work, but there is no technical documentation and older records have quality problems, so it cannot yet be trusted for automated processes without cleanup. Technical: no data dictionary or ERD exists, and known data-entry issues (duplicates, stale records) mean fields must be profiled and cleansed before mapping to Data 360.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Event Readiness:</span> 3.00
+            <span class="evidence"> - Score 3 — Partial. Business: the org keeps more than three years of activity history and formally links related records (contacts to accounts), so relationship context is preserved. Technical: interaction timelines exist, but stakeholders gave conflicting answers on how quickly updates are shared with other systems, so event latency needs to be confirmed before relying on it for triggers.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Accessibility:</span> 4.00
+            <span class="evidence"> - Score 4. Strong support. Business: Data 360 can read this org through the standard Salesforce connector, with no new build. Technical: native Salesforce CRM connector to Data 360. Earlier evidence: Score 3 — Partial. Business: data can be reached, but teams disagree on whether that is through an API or manual export, so operational access is not yet dependable. Technical: LinkedIn Sales Navigator, ZoomInfo, and Outlook connectors are in place for enrichment, but there is no confirmed programmatic extraction path for bulk/near-real-time use.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Consent Maturity:</span> 2.00
+            <span class="evidence"> - Score 2 — Significant gaps. Business: the only preference captured is a single global 'Do Not Contact' flag, with no per-channel choices and no record of when a preference changed — insufficient for compliant, channel-specific outreach. Technical: mass email is handled separately in the marketing platform, so consent is fragmented across systems with no unified, auditable model.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Scale & Velocity:</span> 2.00
+            <span class="evidence"> - Score 2 — Significant gaps. Business: this is a small, slow-moving dataset, so it contributes little volume to the enterprise picture. Technical: 10K–100K records with fewer than 100 updates per day — low scale and velocity relative to Data 360 ingestion expectations.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Downstream Readiness:</span> 4.00
+            <span class="evidence"> - Score 4. Strong support. Business: this org can receive Data 360 segments and insights out of the box. Technical: Salesforce orgs are native Data 360 activation targets. Writing events back into other source systems is a separate effort. Earlier evidence: Score 2 — Significant gaps. Business: it is unclear whether the org can act on data pushed in from elsewhere; one respondent says it is standalone, another says it accepts triggered updates. Technical: Account Engagement (Pardot) is connected, but the pending Southeast consolidation into Midwest adds architectural uncertainty, so downstream write-back capability cannot be confirmed today.</span>
+        </div>
+
+        <p style='margin-top:1rem'><strong>Key Observations:</strong> A B2B, sales-focused org managing employer, broker, and payer accounts (deliberately excludes PHI). Southeast is in the process of consolidating into the Midwest org, and two survey respondents gave divergent views on integration and data-sharing, so several answers carry low confidence. The biggest constraints are the absence of a standard organization identifier, planned-but-incomplete duplicate management, and older-record data quality.</p>
+        <p><strong>Recommendations:</strong> Lower priority for the first Data 360 wave. Complete the Southeast-to-Midwest consolidation and the duplicate-management project first, then establish a standard B2B organization identifier to enable reliable cross-system matching. Evaluate the Account Engagement integration as the eventual activation path.</p>
+    </div>
+<div class="org-card">
+        <h3>MW - Org 2 Mission and Spiritual Care - Readiness: 2.88/5 (Partial readiness) | REWIRE 2030 value: 2.60 - Medium</h3>
+        <div class="evidence-item">
+            <span class="evidence-label">Initiative Contribution:</span> 2.60
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Identity Data Quality:</span> 2.75
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Readiness:</span> 3.00
+            <span class="evidence"> - Survey: records 'good enough for daily work' (3), understood within the team (3), 'decent quality of data' per orientation. But overly complex build, low adoption on the Mission side, duplicates, and no data dictionary. Core data present with moderate gaps.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Event Readiness:</span> 2.00
+            <span class="evidence"> - Engagement Activities logged manually (email/call/visit/event touchpoints); no real-time capture; stores mostly current status, no history over time. Interested in — but not using — Outlook integration. Limited event capture.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Accessibility:</span> 4.00
+            <span class="evidence"> - Score 4. Strong support. Business: Data 360 can read this org through the standard Salesforce connector, with no new build. Technical: native Salesforce CRM connector to Data 360. Earlier evidence: Data movement is manual downloads only (a person logs in and exports); outside systems cannot write back (mostly standalone). Standard SF APIs exist but no active integrations. Limited access.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Consent Maturity:</span> 2.00
+            <span class="evidence"> - Only a manually-checked 'Do Not Call' checkbox / single overall 'Do Not Contact' choice; no per-channel granularity and no history of when/how preferences were collected. Basic consent, inconsistently applied.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Scale & Velocity:</span> 2.00
+            <span class="evidence"> - Under 10,000 people records and under 10,000 org records (Institutions 5,896; Contacts 7,502; Engagements 522); fewer than 100 created/updated per business day. Low volume with infrequent updates.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Downstream Readiness:</span> 4.00
+            <span class="evidence"> - Score 4. Strong support. Business: this org can receive Data 360 segments and insights out of the box. Technical: Salesforce orgs are native Data 360 activation targets. Writing events back into other source systems is a separate effort. Earlier evidence: Survey: outside systems cannot write back updates (mostly standalone). Would require significant work to consume Data 360 outputs. Interested in Benevity integration but not yet built.</span>
+        </div>
+
+        <p style='margin-top:1rem'><strong>Key Observations:</strong> Community-partnership relationship-management org (formerly Mission & Spiritual Care, now 'Community') shared across MW and SE (CSI) teams via the External Affairs app. Low volume (~6K institutions, ~7.5K contacts) and low adoption on the Mission side; CSI team relies on a custom Engagement Activities object for touchpoint logging. Strongest strategic relevance to Enterprise/B2B partnership development and Health Equity. Primary gaps: weak unique-ID discipline (dup risk, no merge), single-flag consent, manual-only data movement, and no downstream write-back.</p>
+        <p><strong>Recommendations:</strong> Address unique-ID/duplicate discipline before matching in Data 360. Simplify the build to improve adoption. Pursue Benevity and Outlook integrations to capture donations and engagement events. Upgrade consent from a single Do-Not-Contact flag to channel-level preferences with history.</p>
+    </div>
+<div class="org-card">
+        <h3>Finance - Readiness: 2.72/5 (Partial readiness) | REWIRE 2030 value: Not relevant</h3>
+        <div class="evidence-item">
+            <span class="evidence-label">Initiative Contribution:</span> N/A
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Identity Data Quality:</span> 2.00
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Readiness:</span> 3.00
+            <span class="evidence"> - Score 3 — Partial. Business: required fields are enforced by the system so tickets are complete, but there are no people or account records here — only cases — so there is little person-level data to ready for Data 360. Technical: validation is strong within the case object, but the model is understood mainly within the team and lacks broader documentation.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Event Readiness:</span> 3.00
+            <span class="evidence"> - Score 3 — Partial. Business: case activity is tracked with one-to-three years of history, giving a usable audit trail for finance tickets. Technical: case events are captured, but there is no known integration or measured sharing latency, so it is not a source for cross-system triggers.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Accessibility:</span> 4.00
+            <span class="evidence"> - Score 4. Strong support. Business: Data 360 can read this org through the standard Salesforce connector, with no new build. Technical: native Salesforce CRM connector to Data 360. Earlier evidence: Score 1 — Not sufficient. Business: the org is completely siloed — data effectively cannot be shared or reused elsewhere. Technical: no integrations of any kind and unknown/absent export tooling; access is entirely self-contained.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Consent Maturity:</span> 1.00
+            <span class="evidence"> - Score 1 — Not sufficient. Business: not applicable — this is internal ticketing with no outbound communication preferences to manage. Technical: no consent tracking exists because there are no marketable person records.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Scale & Velocity:</span> 2.00
+            <span class="evidence"> - Score 2 — Significant gaps. Business: high ticket volume but very few distinct people, so it adds little to a person-centric platform. Technical: 328K cases but fewer than 10K people records and under 100 updates/day; brand-new org (stood up 2025).</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Downstream Readiness:</span> 4.00
+            <span class="evidence"> - Score 4. Strong support. Business: this org can receive Data 360 segments and insights out of the box. Technical: Salesforce orgs are native Data 360 activation targets. Writing events back into other source systems is a separate effort. Earlier evidence: Score 1 — Not sufficient. Business: the org cannot accept or act on any external updates. Technical: fully standalone with no integration infrastructure; every downstream question was not applicable.</span>
+        </div>
+
+        <p style='margin-top:1rem'><strong>Key Observations:</strong> A brand-new (2025), completely siloed internal ticketing org built on Email-to-Case for four Finance inboxes (Procurement, Accounts Payable, MDI, and VMO). It holds no person or account records — only cases keyed by email — and is heavily automated with custom flows that replicate a prior tool (Cayzu), creating high admin overhead. It has no integrations and no external data value for Data 360.</p>
+        <p><strong>Recommendations:</strong> Exclude from the Data 360 roadmap. There is no patient or person data of value here. It could someday provide vendor-relationship context, but only after substantial re-architecture.</p>
+    </div>
+<div class="org-card">
+        <h3>SE - Employer Solutions - Readiness: 2.62/5 (Partial readiness) | REWIRE 2030 value: 2.25 - Low</h3>
+        <div class="evidence-item">
+            <span class="evidence-label">Initiative Contribution:</span> 2.25
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Identity Data Quality:</span> 1.75
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Readiness:</span> 2.00
+            <span class="evidence"> - Score 2 — Significant gaps. Business: staff can get through daily work, but with no documentation and many old, irrelevant records the data is not reliable for anything automated. Technical: this is a legacy org being decommissioned, so investment in schema documentation or cleansing is not planned — data should be validated only to the extent needed for a clean migration.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Event Readiness:</span> 3.00
+            <span class="evidence"> - Score 3 — Partial. Business: several years of history exist and updates can surface quickly, but most workflows are manual so event capture is inconsistent. Technical: timeline history spans 3+ years, but limited automated event capture makes this unsuitable as a real-time event source.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Accessibility:</span> 4.00
+            <span class="evidence"> - Score 4. Strong support. Business: Data 360 can read this org through the standard Salesforce connector, with no new build. Technical: native Salesforce CRM connector to Data 360. Earlier evidence: Score 2 — Significant gaps. Business: getting data out means manual exports, and the org cannot take in updates from other systems. Technical: manual downloads only, no inbound integration, and minimal ZoomInfo access — access is effectively operator-driven and not automatable.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Consent Maturity:</span> 2.00
+            <span class="evidence"> - Score 2 — Significant gaps. Business: preferences are scattered across places with only a global 'Do Not Contact' option and no history, so consent cannot be relied on. Technical: no centralized, standardized consent model exists.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Scale & Velocity:</span> 2.00
+            <span class="evidence"> - Score 2 — Significant gaps. Business: a small dataset with little daily change. Technical: 10K–100K records, fewer than 100 updates/day — low scale and velocity.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Downstream Readiness:</span> 4.00
+            <span class="evidence"> - Score 4. Strong support. Business: this org can receive Data 360 segments and insights out of the box. Technical: Salesforce orgs are native Data 360 activation targets. Writing events back into other source systems is a separate effort. Earlier evidence: Score 1 — Not sufficient. Business: the org cannot receive or act on data from other systems and is on a path to retirement, so building integrations would be wasted effort. Technical: standalone with no integration infrastructure; slated for decommission into the Midwest org.</span>
+        </div>
+
+        <p style='margin-top:1rem'><strong>Key Observations:</strong> A legacy Southeast employer CRM scheduled for decommission into the Midwest Org 1. Data-quality is weak across the board (uniqueness and cross-department identifier reuse were rated lowest), and it holds no PHI. A behavioral-health team providing virtual BH services to schools and employers was added in January 2026. A dependency on the 'People Connect' program could push the migration timeline out to 2028.</p>
+        <p><strong>Recommendations:</strong> Do NOT onboard to Data 360 — the org is being retired. Focus effort on a clean migration to the Midwest org, and specifically ensure the newer behavioral-health data is preserved and mapped correctly during the transition.</p>
+    </div>
+<div class="org-card">
+        <h3>Form.io - Readiness: 2.31/5 (Significant gaps) | REWIRE 2030 value: 2.57 - Medium</h3>
+        <div class="evidence-item">
+            <span class="evidence-label">Initiative Contribution:</span> 2.57
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Identity Data Quality:</span> 2.50
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Readiness:</span> 2.00
+            <span class="evidence"> - Score 2 — Significant gaps. Business: Form.io passes submissions on and keeps nothing, so there is no history to assess. What reaches Salesforce is thin: a Lead (plus a campaign membership on 5 of the 6 connected forms) with the lead source always set to 'Webform', and fields that vary by form. Technical: The Oct 13 export shows 150 forms: 6 send to Salesforce, 1 sends to Account Engagement (Pardot), and 143 have no destination described. There is no matching or de-duplication. The form a Lead came from shows only through hidden lead source and campaign ID fields.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Event Readiness:</span> 3.00
+            <span class="evidence"> - Score 3 — Partial readiness. Business: Submissions flow to Salesforce through a queue soon after the visitor presses submit, likely within seconds to minutes, though this has not been measured. Forms that only send email leave no record beyond the recipient's inbox, and no owner is named for counts or error monitoring. Technical: A queued pipeline with automatic retries posts submissions to Salesforce through its standard API. Failed messages wait in a holding queue until someone resends them by hand.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Accessibility:</span> 3.00
+            <span class="evidence"> - Score 3 — Partial readiness. Business: Form.io is self-hosted, so no vendor limits access. The useful data already lands in Salesforce as Leads and campaign members, so Data 360 can read it from the Salesforce orgs without touching Form.io. Technical: Form.io stores form designs and settings only, with no submissions to query. Any new destination, even a flat file, means development work on shared web servers (orientation call, Oct 22).</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Consent Maturity:</span> 1.00
+            <span class="evidence"> - Score 1 — Not sufficient. Business: Consent is whatever text each form owner writes. The platform neither enforces nor records it, and no form with an opt-in or opt-out question was identified on the orientation call. Technical: No consent field appears in the Salesforce mapping reviewed so far. OneTrust, the planned consent platform, is not live yet.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Scale & Velocity:</span> N/A
+            <span class="evidence"> - Not scored yet. Business: No volumes exist. The platform keeps no submissions or analytics, and owners do not receive counts. The audit lists Form.io in Illinois and Wisconsin as sending confirmation messages, with no counts. Technical: Even total counts would need a custom build. Lead counts by lead source in Salesforce could stand in.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Downstream Readiness:</span> N/A
+            <span class="evidence"> - Not scored yet. Business: Form.io collects data and sends it onward, and does not receive Data 360 outputs. Technical: Nothing so far describes Form.io using audiences, consent or profile data from Data 360. Adding a form ID or consent text version to the Salesforce mapping would improve the data coming in, but would not make Form.io an activation target.</span>
+        </div>
+
+        <p style='margin-top:1rem'><strong>Key Observations:</strong> Form.io is a self-hosted service that passes web form submissions on to other systems. It keeps no submissions or analytics, so the Leads and campaign members that 6 of 150 forms create in Salesforce are the only data Data 360 can reach. There is no matching, de-duplication or consent enforcement. Whether the Account Engagement (Pardot) link is still live is not confirmed. A form was recently connected to a Southeast Salesforce org, and which form it is has not been confirmed. Assessment surveys are built, with no responses yet.</p>
+        <p><strong>Recommendations:</strong> Bring in Lead and campaign member records from the Salesforce orgs that receive them, through existing connectors, instead of building on Form.io. For the busiest forms, add the form ID and consent text version to the Salesforce mapping. Use Lead counts by lead source to estimate volume, and name an owner for form analytics.</p>
+    </div>
+<div class="org-card">
+        <h3>Yext - Readiness: 2.19/5 (Significant gaps) | REWIRE 2030 value: 2.83 - Medium</h3>
+        <div class="evidence-item">
+            <span class="evidence-label">Initiative Contribution:</span> 2.83
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Identity Data Quality:</span> 3.00
+            <span class="evidence"> - (Computed from sub-scores)</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Readiness:</span> 2.00
+            <span class="evidence"> - Score 2 — Significant gaps. Business: Yext is not live, so there is no Yext data yet. The web data it will manage is unreliable today: wrong provider or location details appear online 'most weeks', and fixes follow four different paths (business survey, Oct 15). Technical: Provider records will carry the NPI (National Provider Identifier), Epic provider ID and Sparkle ID, and location records will carry the Epic department ID, Sparkle location ID and Google Business Profile ID. That crosswalk is planned and not loaded yet, and review fields are still to be decided (technical survey, Oct 21).</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Event Readiness:</span> N/A
+            <span class="evidence"> - Not scored yet. Business: Yext Analytics is in scope but not set up, and the activity detail it will provide is not known yet (calls, directions, website and booking clicks, questions, search terms). Technical: Level of detail, record-level availability and call tracking were all answered 'Not sure' in the technical survey, so there is nothing to score yet.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Accessibility:</span> N/A
+            <span class="evidence"> - Not scored yet. Business: The business wants star ratings and reviews by provider and location, and whether those can be exported is not decided. Technical: Export method (API, files or a warehouse share), timing and destination are 'Not sure' or 'Not decided yet' (technical survey). Confirm export options before go-live.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Consent Maturity:</span> 1.00
+            <span class="evidence"> - Score 1 — Not sufficient. Business: Review requests will be a new message to patients after a visit, and no consent design exists yet. Whether opted-out patients are excluded is 'Not decided yet', and whether a Yext opt-out reaches Epic is 'Not sure' (technical survey). Yext is expected to take over the Google review requests that Reputation sends to Southeast patients after visits. Technical: No suppression link to Nexus or to OneTrust, the planned consent platform, has been decided. The score reflects a design that does not exist yet, since Yext is not live.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Data Scale & Velocity:</span> N/A
+            <span class="evidence"> - Not scored yet. Business: About 100,000 to 1 million reviews sit in Reputation today. Review requests a day, new reviews a month and daily listing actions were answered 'Not applicable' or 'Don't know' (technical survey). Technical: No volume or update-rate figures exist for Yext itself because it is not live yet.</span>
+        </div>
+<div class="evidence-item">
+            <span class="evidence-label">Downstream Readiness:</span> N/A
+            <span class="evidence"> - Not scored yet. Business: Nothing so far describes Yext receiving Data 360 outputs such as updated provider details or review-request audiences. Technical: In the planned design, provider and location feeds come from Sparkle (Combinaut), with Yext edits limited to FAQs and possibly holiday hours (technical survey), so Yext would receive Sparkle data rather than Data 360 outputs.</span>
+        </div>
+
+        <p style='margin-top:1rem'><strong>Key Observations:</strong> Yext is not live yet, so this assessment rests on two survey responses (Oct 15 and Oct 21) with many questions still open. Yext mainly manages provider and location information (Listings, Reviews, Analytics), and its crosswalk of NPI, Epic and Sparkle IDs is the most useful part for Data 360. Patients appear only through review requests, and consent, retention and export are not decided yet.</p>
+        <p><strong>Recommendations:</strong> Treat Yext as a later source. Before go-live, confirm export options (API, files or a warehouse share) and whether review history moves over from Reputation. Start with summary data: the ID crosswalk, ratings and review counts by provider and location, and listing actions. Hold patient-level review data until consent rules and a patient ID link exist.</p>
+    </div>
+
+    </section>
+    </div><!-- /tab-dashboard -->
+
+    <div id="tab-roadmap" class="tab-panel" role="tabpanel">
+    
+    <section>
+        <h2>Roadmap</h2>
+        <p class="rm-intro">This roadmap shows when each system is planned to be assessed, connected to Data 360, merged, replaced or retired. Bars marked planned, target or scheduled come from program plans or booked meetings. All other timing is a proposed order to confirm with each system owner. Each system&#x27;s entry is kept with its assessment, so the roadmap updates when an assessment does.</p>
+        <p class="rm-updated">Roadmap last updated October 27, 2026.</p>
+    </section>
+
+    <section>
+        <h2>Program milestones</h2>
+        <div class="rm-milestones"><div class="rm-milestone"><span class="when">Nov 18, 2026</span>Data 360 Horizon 1 go-live (target)</div><div class="rm-milestone"><span class="when">Dec 2026</span>Close Marketing Cloud Next gaps before setup (planned)</div><div class="rm-milestone"><span class="when">Jan 2027</span>Marketing Cloud Next setup begins (planned)</div><div class="rm-milestone"><span class="when">Jan 15, 2027</span>Message Orchestration build starts (planned)</div><div class="rm-milestone"><span class="when">Feb 2027</span>Move to Marketing Cloud Next begins, Midwest first, then Southeast (planned)</div><div class="rm-milestone"><span class="when">Mar 2027</span>OneTrust target for enforcing consent across channels, starting in Salesforce (to confirm)</div><div class="rm-milestone"><span class="when">May 2027</span>Yext planned to replace Reputation for listings and reviews</div></div>
+    </section>
+
+    <section>
+        <h2>Roadmap by system</h2>
+        <div class="rm-legend" aria-label="Legend"><span><span class="rm-swatch rm-assess"></span>Assess and decide</span><span><span class="rm-swatch rm-connect"></span>Connect to Data 360</span><span><span class="rm-swatch rm-launch"></span>Go live</span><span><span class="rm-swatch rm-consolidate"></span>Merge into another org</span><span><span class="rm-swatch rm-replace"></span>Replace or switch tools</span><span><span class="rm-swatch rm-retire"></span>Retire</span><span><span class="rm-swatch rm-run"></span>Keep as is</span></div>
+        <div class="rm-scroll">
+            <table class="rm-table">
+                <thead><tr><th scope="col" class="rm-sys">System</th><th scope="col">Q4 2026</th><th scope="col">Q1 2027</th><th scope="col">Q2 2027</th><th scope="col">Q3 2027</th><th scope="col">Q4 2027</th><th scope="col">2028 and later</th></tr></thead>
+                <tbody><tr class="rm-lane"><th scope="rowgroup" colspan="7">Salesforce orgs</th></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Midwest Golden Org (Org 7)</strong><span class="rm-status">Readiness 3.82 of 5, REWIRE 2030 value high</span></th><td colspan="1"><div class="rm-bar rm-connect"><span class="rm-kind">Connect to Data 360</span>Early source (Horizon 1 scope to confirm)</div></td><td colspan="5"><div class="rm-bar rm-run"><span class="rm-kind">Keep as is</span>No merge or retirement planned</div></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Southeast Carolinas Medical Center org</strong><span class="rm-status">Readiness 4.00 of 5, REWIRE 2030 value medium</span></th><td colspan="1"><div class="rm-bar rm-connect"><span class="rm-kind">Connect to Data 360</span>Early source (Horizon 1 scope to confirm)</div></td><td colspan="5"><div class="rm-bar rm-run"><span class="rm-kind">Keep as is</span>No merge or retirement planned</div></td></tr><tr><th scope="row" class="rm-sys" rowspan="2"><strong>Midwest Employer Services (Org 1)</strong><span class="rm-status">Readiness 2.97 of 5, REWIRE 2030 value low</span></th><td colspan="2"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Confirm the plan for employer and community orgs</div></td><td colspan="4"><div class="rm-bar rm-run"><span class="rm-kind">Keep as is</span>Employer org, taking in merged orgs</div></td></tr><tr><td></td><td></td><td></td><td colspan="2"><div class="rm-bar rm-connect"><span class="rm-kind">Connect to Data 360</span>Connect after the merges (later wave)</div></td><td></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Southeast Employer Solutions</strong><span class="rm-status">Readiness 2.62 of 5, REWIRE 2030 value low</span></th><td></td><td colspan="5"><div class="rm-bar rm-consolidate"><span class="rm-kind">Merge into another org</span>Move into Org 1 (could extend into 2028)</div></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Southeast Marketing org</strong><span class="rm-status">Not on the scoring list yet</span></th><td colspan="2"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Confirm what this org is</div></td><td></td><td></td><td></td><td></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Finance org</strong><span class="rm-status">Readiness 2.72 of 5, REWIRE 2030 value not relevant</span></th><td colspan="2"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Decide whether to keep a separate org</div></td><td></td><td></td><td></td><td></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Midwest Org 2 (Community, Mission and Spiritual Care)</strong><span class="rm-status">Readiness 2.88 of 5, REWIRE 2030 value medium</span></th><td colspan="2"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Confirm the merge plan</div></td><td colspan="3"><div class="rm-bar rm-consolidate"><span class="rm-kind">Merge into another org</span>Possible move into Org 1</div></td><td></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Midwest Org 3 (Aurora Consolidated Labs)</strong><span class="rm-status">Readiness 3.31 of 5, REWIRE 2030 value medium</span></th><td colspan="3"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Decide whether it stays separate</div></td><td colspan="2"><div class="rm-bar rm-connect"><span class="rm-kind">Connect to Data 360</span>Connect after the ACL360 link (later wave)</div></td><td></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Midwest Org 6 (Classes and Events)</strong><span class="rm-status">Readiness 3.38 of 5, REWIRE 2030 value medium</span></th><td></td><td colspan="2"><div class="rm-bar rm-retire"><span class="rm-kind">Retire</span>Retirement planned for early 2027</div></td><td></td><td></td><td></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Wake Forest Baptist Health org</strong><span class="rm-status">Not scored (out of scope)</span></th><td></td><td colspan="4"><div class="rm-bar rm-retire"><span class="rm-kind">Retire</span>Retirement expected in 2027</div></td><td></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Riskonnect org</strong><span class="rm-status">Not on the scoring list</span></th><td colspan="2"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Confirm owner and plan</div></td><td></td><td></td><td></td><td></td></tr></tbody><tbody><tr class="rm-lane"><th scope="rowgroup" colspan="7">Marketing and messaging</th></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Midwest Marketing Cloud</strong><span class="rm-status">Readiness 3.94 of 5, REWIRE 2030 value high</span></th><td colspan="1"><div class="rm-bar rm-connect"><span class="rm-kind">Connect to Data 360</span>Horizon 1 source and first activation channel</div></td><td colspan="2"><div class="rm-bar rm-replace"><span class="rm-kind">Replace or switch tools</span>Move to Marketing Cloud Next, starting February (planned)</div></td><td></td><td></td><td></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Southeast Marketing Cloud</strong><span class="rm-status">Readiness 4.00 of 5, REWIRE 2030 value high</span></th><td colspan="1"><div class="rm-bar rm-connect"><span class="rm-kind">Connect to Data 360</span>Horizon 1 source and activation channel</div></td><td></td><td colspan="2"><div class="rm-bar rm-replace"><span class="rm-kind">Replace or switch tools</span>Move to Marketing Cloud Next after the Midwest (planned)</div></td><td></td><td></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Account Engagement (Pardot)</strong><span class="rm-status">Not on the scoring list</span></th><td colspan="2"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Confirm its Horizon 1 role and the employer org plan</div></td><td></td><td colspan="2"><div class="rm-bar rm-replace"><span class="rm-kind">Replace or switch tools</span>Possible move to Marketing Cloud Next (to decide)</div></td><td></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Marketing Cloud Next</strong><span class="rm-status">Planned</span></th><td colspan="1"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Close gaps before setup (December, planned)</div></td><td colspan="1"><div class="rm-bar rm-launch"><span class="rm-kind">Go live</span>Setup in January, Midwest move from February (planned)</div></td><td colspan="4"><div class="rm-bar rm-run"><span class="rm-kind">Keep as is</span>Main platform for email and text</div></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Department email tools (Mailchimp, Constant Contact, HubSpot, Campaigner)</strong><span class="rm-status">Not on the scoring list</span></th><td colspan="2"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Confirm owners and audiences</div></td><td></td><td colspan="3"><div class="rm-bar rm-replace"><span class="rm-kind">Replace or switch tools</span>Move to Marketing Cloud Next (follow-on)</div></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Twilio</strong><span class="rm-status">Not scored yet</span></th><td colspan="2"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Orientation scheduled for December, then decide</div></td><td></td><td></td><td></td><td></td></tr></tbody><tbody><tr class="rm-lane"><th scope="rowgroup" colspan="7">Consent</th></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>OneTrust consent platform</strong><span class="rm-status">Planned</span></th><td colspan="2"><div class="rm-bar rm-launch"><span class="rm-kind">Go live</span>Go live in Salesforce, target March 2027 (to confirm)</div></td><td colspan="3"><div class="rm-bar rm-launch"><span class="rm-kind">Go live</span>Extend to other senders</div></td><td></td></tr></tbody><tbody><tr class="rm-lane"><th scope="rowgroup" colspan="7">Patient outreach and contact center</th></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>CipherHealth</strong><span class="rm-status">Readiness 3.43 of 5, REWIRE 2030 value high</span></th><td colspan="1"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Confirm findings with the owners</div></td><td colspan="2"><div class="rm-bar rm-connect"><span class="rm-kind">Connect to Data 360</span>Connect through Nexus</div></td><td></td><td></td><td></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Hippocratic AI</strong><span class="rm-status">Not scored yet</span></th><td colspan="1"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Orientation scheduled for November</div></td><td colspan="2"><div class="rm-bar rm-connect"><span class="rm-kind">Connect to Data 360</span>Land call results in Nexus</div></td><td></td><td></td><td></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Genesys</strong><span class="rm-status">Not scored yet</span></th><td colspan="2"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Confirm owners and scope</div></td><td></td><td></td><td></td><td></td></tr></tbody><tbody><tr class="rm-lane"><th scope="rowgroup" colspan="7">Patient experience and reviews</th></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>NRC Health</strong><span class="rm-status">Readiness 3.40 of 5, REWIRE 2030 value medium</span></th><td colspan="1"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Confirm findings with the owners</div></td><td colspan="2"><div class="rm-bar rm-connect"><span class="rm-kind">Connect to Data 360</span>Connect survey results from Nexus</div></td><td></td><td></td><td></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Yext</strong><span class="rm-status">Readiness 2.19 of 5, REWIRE 2030 value medium</span></th><td></td><td></td><td colspan="1"><div class="rm-bar rm-launch"><span class="rm-kind">Go live</span>Go-live planned around May 2027</div></td><td colspan="2"><div class="rm-bar rm-connect"><span class="rm-kind">Connect to Data 360</span>Bring in provider and location summaries</div></td><td></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Reputation</strong><span class="rm-status">Not on the scoring list</span></th><td colspan="2"><div class="rm-bar rm-run"><span class="rm-kind">Keep as is</span>In use until Yext goes live</div></td><td colspan="1"><div class="rm-bar rm-replace"><span class="rm-kind">Replace or switch tools</span>Planned replacement by Yext</div></td><td></td><td></td><td></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Medallia</strong><span class="rm-status">Not on the scoring list</span></th><td colspan="2"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Confirm overlap with NRC Health</div></td><td></td><td></td><td></td><td></td></tr></tbody><tbody><tr class="rm-lane"><th scope="rowgroup" colspan="7">Web, forms, scheduling and events</th></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Form.io</strong><span class="rm-status">Readiness 2.31 of 5, REWIRE 2030 value medium</span></th><td colspan="1"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Confirm findings with the owners</div></td><td></td><td colspan="1"><div class="rm-bar rm-connect"><span class="rm-kind">Connect to Data 360</span>Connect form submissions through Salesforce</div></td><td></td><td></td><td></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Combinaut / Sparkle</strong><span class="rm-status">Not scored yet</span></th><td colspan="1"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Orientation scheduled for November</div></td><td colspan="2"><div class="rm-bar rm-connect"><span class="rm-kind">Connect to Data 360</span>Connect booking events</div></td><td></td><td></td><td></td></tr></tbody><tbody><tr class="rm-lane"><th scope="rowgroup" colspan="7">Clinical and population health</th></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Epic and MyChart (Midwest)</strong><span class="rm-status">Not scored yet</span></th><td colspan="1"><div class="rm-bar rm-connect"><span class="rm-kind">Connect to Data 360</span>Patient data through Nexus (Horizon 1)</div></td><td colspan="2"><div class="rm-bar rm-connect"><span class="rm-kind">Connect to Data 360</span>Message history for Message Orchestration</div></td><td></td><td></td><td></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Epic and MyChart (Southeast)</strong><span class="rm-status">Not scored yet</span></th><td colspan="1"><div class="rm-bar rm-connect"><span class="rm-kind">Connect to Data 360</span>Patient data through Nexus (Horizon 1)</div></td><td colspan="2"><div class="rm-bar rm-connect"><span class="rm-kind">Connect to Data 360</span>Message history for Message Orchestration</div></td><td></td><td></td><td></td></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Cerner HealtheIntent</strong><span class="rm-status">Not scored yet</span></th><td colspan="1"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Orientation scheduled for November</div></td><td></td><td></td><td colspan="2"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Scope a narrow outreach use case</div></td><td></td></tr></tbody><tbody><tr class="rm-lane"><th scope="rowgroup" colspan="7">Foundations</th></tr><tr><th scope="row" class="rm-sys" rowspan="1"><strong>Blackbaud Raiser&#x27;s Edge NXT</strong><span class="rm-status">Not scored yet</span></th><td></td><td colspan="1"><div class="rm-bar rm-assess"><span class="rm-kind">Assess and decide</span>Name an owner and confirm the foundations in scope</div></td><td></td><td></td><td colspan="2"><div class="rm-bar rm-connect"><span class="rm-kind">Connect to Data 360</span>Donor and preference data through Nexus</div></td></tr></tbody>
+            </table>
+        </div>
+    </section>
+
+    <section>
+        <h2>Data 360 potential and value for REWIRE 2030</h2>
+        <p class="rm-intro">Data 360 potential rates how much a system could add to Data 360 if connected: High, Medium or Low. Value for REWIRE 2030 names the REWIRE solution or initiative the system supports. Not planned means the system stays out of Data 360 on purpose. Nexus is Advocate&#x27;s Snowflake data platform, which already feeds Data 360.</p>
+        <div class="rm-scroll">
+            <table class="rm-pv">
+                <thead><tr><th scope="col">System</th><th scope="col">What it does today</th>
+                <th scope="col">Data 360 potential</th><th scope="col">Value for REWIRE 2030</th>
+                <th scope="col">Next step</th></tr></thead>
+                <tbody><tr><th scope="row">Midwest Golden Org (Org 7)</th><td>Midwest patient CRM. Feeds the Midwest Marketing Cloud account.</td><td><span class="rm-potential rm-p-high">High</span></td><td>Advocate Mission Control: a single patient profile across regions. Health Equity: health risk and social needs answers can shape outreach.</td><td>Reconcile the patient record count on file with the org&#x27;s actual count, confirm the business owner, then map consent fields.</td></tr><tr><th scope="row">Southeast Carolinas Medical Center org</th><td>Southeast patient CRM for marketing, the contact center, clinical trial inquiries and provider outreach. Feeds the Southeast Marketing Cloud account.</td><td><span class="rm-potential rm-p-high">High</span></td><td>Advocate Mission Control: a single patient profile across regions. Build the Preeminent National Academic Model: clinical trial recruitment.</td><td>Map its patient ID to Data 360 identity matching, and agree which consent fields are the source of truth.</td></tr><tr><th scope="row">Midwest Employer Services (Org 1)</th><td>Employer accounts and sales for Advocate Health Solutions. Holds selected Southeast employer records and the Account Engagement (Pardot) connection.</td><td><span class="rm-potential rm-p-medium">Medium (later wave)</span></td><td>Advocate Growth Network: one employer view for employer and business-to-business growth. Curate System of Systems: the landing org for other employer and community orgs.</td><td>Confirm Org 1 as the single employer org, and set a standard ID for employer accounts.</td></tr><tr><th scope="row">Southeast Employer Solutions</th><td>Southeast employer CRM for client strategists and, since January 2026, a behavioral health team.</td><td><span class="rm-potential rm-p-none">Not planned</span></td><td>Curate System of Systems: retiring a duplicate employer CRM.</td><td>Plan the move into Org 1, keep the behavioral health data intact, and stop re-entering closed deals by hand.</td></tr><tr><th scope="row">Southeast Marketing org</th><td>Listed in Salesforce account records as a Salesforce org, but the Southeast admin team did not recognize it. The same records list the Southeast Marketing Cloud account under this org.</td><td><span class="rm-potential rm-p-tbc">To be confirmed</span></td><td>Curate System of Systems: confirm whether this org is needed.</td><td>Confirm with the Salesforce account team whether it is a working org, who uses it, and how it relates to the Southeast Marketing Cloud account.</td></tr><tr><th scope="row">Finance org</th><td>Case management for Accounts Payable, Procurement and vendor management teams. No patient or person data.</td><td><span class="rm-potential rm-p-none">Not planned</span></td><td>Curate System of Systems: a candidate to share an org instead of running its own.</td><td>Decide whether Finance needs its own org or can share one.</td></tr><tr><th scope="row">Midwest Org 2 (Community, Mission and Spiritual Care)</th><td>One app, External Affairs, used by the Community and Social Impact team and the Mission and Spiritual Care team, which plans to return to it. Shares an account base with Org 1.</td><td><span class="rm-potential rm-p-low">Low</span></td><td>Health Equity: community partner and social impact work. Curate System of Systems: a candidate to merge into Org 1.</td><td>Confirm whether the app can move into Org 1, and when, with both teams.</td></tr><tr><th scope="row">Midwest Org 3 (Aurora Consolidated Labs)</th><td>Lab business development and a patient call tracker. Client accounts live in an outside system (ACL360).</td><td><span class="rm-potential rm-p-medium">Medium</span></td><td>Advocate Growth Network: lab outreach growth with employers and clinics.</td><td>Finish the planned two-way link with ACL360, and decide whether Org 3 stays separate.</td></tr><tr><th scope="row">Midwest Org 6 (Classes and Events)</th><td>Legacy classes and events org. Staff still log in daily, and classes are re-entered by hand into Sparkle.</td><td><span class="rm-potential rm-p-none">Not planned</span></td><td>Curate System of Systems: retiring a legacy org once Sparkle covers its work.</td><td>Confirm the retirement date and what moves to Sparkle.</td></tr><tr><th scope="row">Wake Forest Baptist Health org</th><td>Not managed by Advocate&#x27;s Salesforce admin teams. Expected to be retired in 2027.</td><td><span class="rm-potential rm-p-none">Not planned</span></td><td>Curate System of Systems: retiring an org that no admin team manages.</td><td>Confirm whether this is the same org as the Riskonnect org, who owns it, and whether it is still in use.</td></tr><tr><th scope="row">Riskonnect org</th><td>Risk management app on its own Salesforce platform org. Not managed by Advocate&#x27;s Salesforce admin teams.</td><td><span class="rm-potential rm-p-none">Not planned</span></td><td>Curate System of Systems: confirm the owner and whether it is still needed.</td><td>Confirm the owner, and whether it is the same org as Wake Forest Baptist Health.</td></tr><tr><th scope="row">Midwest Marketing Cloud</th><td>Midwest patient email and text journeys.</td><td><span class="rm-potential rm-p-high">High</span></td><td>Advocate Mission Control: first channel for Data 360 audiences. Harmonize: preventive care and wellness outreach.</td><td>Finish Horizon 1 activation, then decide which assets to move or retire before the move to Marketing Cloud Next.</td></tr><tr><th scope="row">Southeast Marketing Cloud</th><td>Southeast patient email and text journeys, with a separate Wake Forest unit for clinical trials, the School of Medicine and research.</td><td><span class="rm-potential rm-p-high">High</span></td><td>Advocate Mission Control: channel for Data 360 audiences. Its consent model could serve as a template for an enterprise standard.</td><td>Finish Horizon 1 activation, then stage the move after the Midwest, simplest assets first.</td></tr><tr><th scope="row">Account Engagement (Pardot)</th><td>Business-to-business marketing email, connected to the Midwest Employer Services org (Org 1). The Employer Solutions website form sends leads to it.</td><td><span class="rm-potential rm-p-medium">Medium</span></td><td>Advocate Growth Network: employer and business-to-business outreach.</td><td>Confirm whether it is still a Horizon 1 source, and decide whether it moves to Marketing Cloud Next, which combines business and consumer marketing.</td></tr><tr><th scope="row">Marketing Cloud Next</th><td>Planned single marketing platform built on Salesforce, replacing both Marketing Cloud accounts.</td><td><span class="rm-potential rm-p-high">High</span></td><td>Curate System of Systems: one platform instead of two regional accounts and many department email tools.</td><td>Decide which Salesforce org hosts it.</td></tr><tr><th scope="row">Department email tools (Mailchimp, Constant Contact, HubSpot, Campaigner)</th><td>Many departments send their own email outside Salesforce, each on a separate account.</td><td><span class="rm-potential rm-p-low">Low</span></td><td>Curate System of Systems: fewer tools and one opt-out list.</td><td>Move departments onto Marketing Cloud Next after the main migration, starting with small, simple senders.</td></tr><tr><th scope="row">Twilio</th><td>Text messaging for some teams. Owners and uses to be confirmed.</td><td><span class="rm-potential rm-p-tbc">To be confirmed</span></td><td>Curate System of Systems: one of several texting tools to compare with Marketing Cloud Next texting.</td><td>Hold the orientation, then decide whether to keep, consolidate or retire it.</td></tr><tr><th scope="row">OneTrust consent platform</th><td>Planned enterprise consent and preference hub. Not live yet.</td><td><span class="rm-potential rm-p-high">High</span></td><td>Advocate Mission Control: one consent record that every channel honors, needed before Data 360 personalizes outreach.</td><td>Take it live in Salesforce first, then extend it to other senders.</td></tr><tr><th scope="row">CipherHealth</th><td>Post-discharge and preventive screening calls and texts, inpatient rounding, and Home Health surveys.</td><td><span class="rm-potential rm-p-high">High</span></td><td>Advocate Mission Control: follow-up calls and their results in one patient view. Health Equity: care gap outreach.</td><td>Finish the CipherHealth to Snowflake data share, and add the enterprise patient ID to its records.</td></tr><tr><th scope="row">Hippocratic AI</th><td>AI phone calls to patients. Taking over social needs outreach from CipherHealth.</td><td><span class="rm-potential rm-p-medium">Medium</span></td><td>Propel Innovation - Partnership Evolutions: AI-led outreach at scale. Health Equity: social needs outreach.</td><td>Name a business owner, and decide where call results land in Snowflake.</td></tr><tr><th scope="row">Genesys</th><td>Contact center platform for call centers in Illinois and at Atrium Health.</td><td><span class="rm-potential rm-p-tbc">To be confirmed</span></td><td>Advocate Mission Control: agents see a patient&#x27;s recent outreach during a call.</td><td>Name owners, and confirm the contact center use case and its scope.</td></tr><tr><th scope="row">NRC Health</th><td>Patient experience surveys, and review of survey comments before they post to provider profiles.</td><td><span class="rm-potential rm-p-high">High</span></td><td>Advocate Mission Control: pause marketing for patients after a poor experience, the team&#x27;s first use case.</td><td>Map survey records to the enterprise patient ID. Survey data is already in Nexus.</td></tr><tr><th scope="row">Yext</th><td>Provider and location listings, reviews and search. Not live yet.</td><td><span class="rm-potential rm-p-medium">Low to medium</span></td><td>Advocate Growth Network: patients find the right provider and location.</td><td>Confirm how listing and review data can be exported before go-live.</td></tr><tr><th scope="row">Reputation</th><td>Southeast Google review requests and online star ratings.</td><td><span class="rm-potential rm-p-none">Not planned</span></td><td>Curate System of Systems: one review tool instead of two.</td><td>Decide whether existing reviews move to Yext.</td></tr><tr><th scope="row">Medallia</th><td>Post-visit surveys for the Southeast medical group.</td><td><span class="rm-potential rm-p-tbc">To be confirmed</span></td><td>Curate System of Systems: a second survey tool alongside NRC Health.</td><td>Confirm whether it continues alongside NRC Health.</td></tr><tr><th scope="row">Form.io</th><td>Web forms on advocatehealth.org. A few send to Salesforce, including one recently connected to a Southeast org.</td><td><span class="rm-potential rm-p-medium">Medium</span></td><td>Advocate Growth Network: new patient inquiries reach the right team and journey.</td><td>Document which forms go to which org, and add consent text to forms once OneTrust is live.</td></tr><tr><th scope="row">Combinaut / Sparkle</th><td>Online scheduling, provider booking, and classes and events.</td><td><span class="rm-potential rm-p-medium">Medium</span></td><td>Advocate Mission Control: booking signals for Provider Booking and follow-up.</td><td>Hold the orientation, and confirm which booking data Provider Booking uses.</td></tr><tr><th scope="row">Epic and MyChart (Midwest)</th><td>Midwest clinical record, the LiveWell patient app, and Epic patient messages.</td><td><span class="rm-potential rm-p-high">High</span></td><td>Advocate Nexus: trusted clinical data reaches Data 360 through Nexus. Advocate Mission Control: message history for Message Orchestration.</td><td>Confirm which Epic message logs reach Nexus, and find out why Midwest records in Data 360 lack the enterprise patient ID.</td></tr><tr><th scope="row">Epic and MyChart (Southeast)</th><td>Southeast clinical record, the MyAtriumHealth patient portal, and Epic patient messages. Some reminders are sent through Odeza.</td><td><span class="rm-potential rm-p-high">High</span></td><td>Advocate Nexus: trusted clinical data reaches Data 360 through Nexus. Advocate Mission Control: message history for Message Orchestration.</td><td>Name a Southeast Epic contact, and confirm which Epic and Odeza send logs reach Nexus.</td></tr><tr><th scope="row">Cerner HealtheIntent</th><td>Population health platform and care gap outreach (HealtheCRM).</td><td><span class="rm-potential rm-p-low">Low</span></td><td>Health Equity: care gap visibility, within what managed care agreements allow.</td><td>Hold the orientation, and confirm what managed care agreements allow before any use.</td></tr><tr><th scope="row">Blackbaud Raiser&#x27;s Edge NXT</th><td>Foundation donor CRM and fundraising.</td><td><span class="rm-potential rm-p-low">Low for now</span></td><td>Advocate Growth Network: donor relationships across foundations.</td><td>Name a business owner, and confirm which foundations use it.</td></tr></tbody>
+            </table>
+        </div>
+    </section>
+
+    <section>
+        <h2>Changes to watch</h2>
+        <p class="rm-intro">Changes in flight, or systems that run in parallel, that affect the plan.</p>
+        <ul class="rm-watch"><li><strong>Southeast Employer Solutions:</strong> Closed deals are re-entered by hand in a second org until the move finishes. The move depends on another program (People Connect) that could push it to 2028. The membership program launches January 1, 2027, and Executive Health client agreements are going into Salesforce now. Which employer org holds each one is not settled.</li><li><strong>Midwest Org 6 (Classes and Events):</strong> Retirement was planned for each of the last two years, and staff still use the org every day.</li><li><strong>Wake Forest Baptist Health org:</strong> It may be the same org as the Riskonnect org, but Salesforce account records list two separate orgs.</li><li><strong>OneTrust consent platform:</strong> Opt-outs sit in at least eight places today, and several texting tools keep their own lists, so patients have to unsubscribe from each one separately.</li><li><strong>CipherHealth:</strong> Outreach on social needs (SDOH, social determinants of health such as housing, food and transportation) is moving to Hippocratic AI while the CipherHealth rollout in the Southeast continues. The Golden and Carolinas Medical Center orgs also hold SDOH data.</li><li><strong>NRC Health:</strong> NRC Health keeps running alongside Yext. Both review patient comments before they go public, and the handoff between them is not defined yet.</li><li><strong>Yext:</strong> Fixes to provider and location details follow four different paths today, so listings can drift apart.</li><li><strong>Combinaut / Sparkle:</strong> Classes and events are spread across several tools, and staff re-enter some from Salesforce into Sparkle by hand.</li><li><strong>Epic and MyChart (Midwest):</strong> Epic Campaigns is planned as the future home for ten preventive and care gap programs now sent from Salesforce and other tools. Confirm whether that plan still holds.</li><li><strong>Cerner HealtheIntent:</strong> Care gap outreach runs on at least five paths, so marketing and value-based care teams can contact the same patient.</li><li><strong>Blackbaud Raiser&#x27;s Edge NXT:</strong> At least three foundation teams use it, some alongside Mailchimp.</li></ul>
+    </section>
+    </div><!-- /tab-roadmap -->
+
+    <div id="tab-explainer" class="tab-panel" role="tabpanel">
+    <section class="explainer">
+        <h2>How to Read This Assessment</h2>
+        
+    <p class="glossary-intro">This assessment evaluates how well each system in the Advocate Health landscape can support
+    the prioritized Data 360 use cases — <em>Patient Booking Completion, Genesys Integration, Messaging Orchestration,
+    Primary Care Triggers,</em> and <em>Health Quizzes</em> — and, more broadly, whether the organization can reliably
+    identify and understand a single person across every role they hold (patient, member, donor, provider, employee,
+    caregiver, prospect). Each system is scored 1&ndash;5 on eight weighted dimensions; the weighted total (also shown out of 100)
+    determines its readiness label and rank.</p>
+
+    <h3 class="glossary-h3">The 1&ndash;5 scoring scale</h3>
+    <div class="scale-grid">
+        <div class="scale-chip">
+            <span class="scale-num" style="background:#dc3545;">1</span>
+            <div><strong>Not sufficient</strong><br><span class="scale-meaning">Not sufficient to support the use cases.</span></div>
+        </div>
+        <div class="scale-chip">
+            <span class="scale-num" style="background:#fd7e14;">2</span>
+            <div><strong>Significant gaps</strong><br><span class="scale-meaning">Significant gaps limit reliability and usability.</span></div>
+        </div>
+        <div class="scale-chip">
+            <span class="scale-num" style="background:#ffc107;">3</span>
+            <div><strong>Partial readiness</strong><br><span class="scale-meaning">Supports use cases with constraints or additional effort.</span></div>
+        </div>
+        <div class="scale-chip">
+            <span class="scale-num" style="background:#28a745;">4</span>
+            <div><strong>Strong support</strong><br><span class="scale-meaning">Strong support with minor gaps.</span></div>
+        </div>
+        <div class="scale-chip">
+            <span class="scale-num" style="background:#007bff;">5</span>
+            <div><strong>Fully ready</strong><br><span class="scale-meaning">Well-positioned to support use cases consistently and at scale.</span></div>
+        </div></div>
+
+    <h3 class="glossary-h3">The eight dimensions</h3>
+    <p class="glossary-note">Two dimensions are <strong>computed</strong> from underlying sub-scores; the other six are
+    <strong>scored directly</strong> from discovery evidence. Weights sum to 100% and reflect each dimension's importance
+    to Data 360 readiness.</p>
+    <div class="glossary-dims">
+        <div class="glossary-dim">
+            <div class="glossary-dim-head">
+                <span class="glossary-dim-name">Initiative Contribution (REWIRE 2030 value)</span>
+                <span class="glossary-weight">Weight: Separate score</span>
+                <span class="kind-badge kind-computed">Computed</span>
+            </div>
+            <div class="glossary-def">How relevant the system is to Advocate Health's prioritized Persona &times; Initiative combinations (the enterprise strategy grid). This is the strategic-value lens: it answers "how much does this system matter to the initiatives we care about?"</div>
+            <div class="glossary-hilo"><strong>Reading the score:</strong> A high score means the system serves many high-priority audience/initiative combinations (e.g. Patients &times; Pioneer National Service Lines). A low score means it is niche or peripheral to the prioritized strategy — not that the system is unimportant operationally.</div>
+            <div class="glossary-computed"><strong>How it's calculated:</strong> Derived from the 9-persona &times; 6-initiative relevance matrix: each cell is rated 0-5 for how relevant this system is to that persona/initiative, then weighted by the business priority of each cell and normalized to a 1-5 score.</div>
+        </div>
+        <div class="glossary-dim">
+            <div class="glossary-dim-head">
+                <span class="glossary-dim-name">Identity Data Quality</span>
+                <span class="glossary-weight">Weight: 21%</span>
+                <span class="kind-badge kind-computed">Computed</span>
+            </div>
+            <div class="glossary-def">How reliably a person can be identified using the data within the system. This is the single most heavily weighted dimension because identity resolution is the foundation of Data 360.</div>
+            <div class="glossary-hilo"><strong>Reading the score:</strong> A high score means people are consistently and uniquely identifiable and can be matched across systems. A low score means duplicates, missing identifiers, or inconsistent entry make it hard to know who is who.</div>
+            <div class="glossary-computed"><strong>How it's calculated:</strong> Computed from every identifier the system holds (e.g. Name+DOB, Email, MRN), each scored on four equally-weighted factors — Coverage, Consistency, Uniqueness, Matchability — then averaged.</div>
+        </div>
+        <div class="glossary-dim">
+            <div class="glossary-dim-head">
+                <span class="glossary-dim-name">Data Readiness</span>
+                <span class="glossary-weight">Weight: 16%</span>
+                <span class="kind-badge kind-direct">Directly scored</span>
+            </div>
+            <div class="glossary-def">Whether the required data exists and is usable for the prioritized use cases.</div>
+            <div class="glossary-hilo"><strong>Reading the score:</strong> A high score means core data is complete, documented, and well-aligned to the target model. A low score means data is missing, undocumented, or has significant quality issues that require cleanup before use.</div>
+            
+        </div>
+        <div class="glossary-dim">
+            <div class="glossary-dim-head">
+                <span class="glossary-dim-name">Event Readiness</span>
+                <span class="glossary-weight">Weight: 12%</span>
+                <span class="kind-badge kind-direct">Directly scored</span>
+            </div>
+            <div class="glossary-def">Whether the system captures relevant events (appointments, calls, form submissions, booking abandonment) and makes them available in a timely manner.</div>
+            <div class="glossary-hilo"><strong>Reading the score:</strong> A high score means events are captured in or near real time. A low score means batch-only capture, long delays, or missing event types that block trigger-based engagement.</div>
+            
+        </div>
+        <div class="glossary-dim">
+            <div class="glossary-dim-head">
+                <span class="glossary-dim-name">Data Accessibility</span>
+                <span class="glossary-weight">Weight: 12%</span>
+                <span class="kind-badge kind-direct">Directly scored</span>
+            </div>
+            <div class="glossary-def">Whether data can be accessed and extracted when needed, including near-real-time scenarios.</div>
+            <div class="glossary-hilo"><strong>Reading the score:</strong> A high score means well-documented APIs and standard connectors. A low score means manual exports only, restrictive access, or no programmatic path.</div>
+            
+        </div>
+        <div class="glossary-dim">
+            <div class="glossary-dim-head">
+                <span class="glossary-dim-name">Consent Maturity</span>
+                <span class="glossary-weight">Weight: 12%</span>
+                <span class="kind-badge kind-direct">Directly scored</span>
+            </div>
+            <div class="glossary-def">The consistency, structure, and enforceability of consent data, including alignment to Salesforce privacy models.</div>
+            <div class="glossary-hilo"><strong>Reading the score:</strong> A high score means a standardized, auditable, channel-aware consent model that is consistently enforced. A low score means no consent model, or a single global flag with no history — a compliance risk for outreach.</div>
+            
+        </div>
+        <div class="glossary-dim">
+            <div class="glossary-dim-head">
+                <span class="glossary-dim-name">Data Scale &amp; Velocity</span>
+                <span class="glossary-weight">Weight: 12%</span>
+                <span class="kind-badge kind-direct">Directly scored</span>
+            </div>
+            <div class="glossary-def">Whether the record volume and update frequency align with Data 360 ingestion limits and consumption tiers.</div>
+            <div class="glossary-hilo"><strong>Reading the score:</strong> A high score means high volume with frequent/near-real-time updates that fit ingestion expectations. A low score means either negligible volume (little value) or volume/velocity that is not understood or hard to ingest.</div>
+            
+        </div>
+        <div class="glossary-dim">
+            <div class="glossary-dim-head">
+                <span class="glossary-dim-name">Downstream Readiness</span>
+                <span class="glossary-weight">Weight: 16%</span>
+                <span class="kind-badge kind-direct">Directly scored</span>
+            </div>
+            <div class="glossary-def">Whether the system can receive and act on Data 360 outputs ("insights"), e.g. via custom field capacity for Data Actions.</div>
+            <div class="glossary-hilo"><strong>Reading the score:</strong> A high score means the system can consume Data 360 outputs via standard connectors. A low score means it is standalone and cannot accept inbound updates without new architecture.</div>
+            
+        </div></div>
+
+    <h3 class="glossary-h3">How identity is scored</h3>
+    <p class="glossary-note">Identity Data Quality is built from every person-identifier a system holds. Each identifier is
+    rated on four equally-weighted factors:</p>
+    <ul class="glossary-list"><li><strong>Coverage</strong> — Whether the identifier is consistently populated (what % of records have it).</li><li><strong>Consistency</strong> — Whether it is entered/used the same way every time within the system.</li><li><strong>Uniqueness</strong> — Whether it actually distinguishes one person from another.</li><li><strong>Matchability</strong> — Whether it can be used to link the same person's records across systems.</li></ul>
+
+    <h3 class="glossary-h3">The Persona &times; Initiative matrix</h3>
+    <p class="glossary-note">Initiative Contribution comes from rating each system against a grid of <strong>9 personas</strong>
+    (Patients, Research, Education, Enterprise, B2B, Job Seekers, Clinicians, Payers, Non&nbsp;Patient) and
+    <strong>6 enterprise initiatives</strong> (Build the Preeminent National Academic Model; Propel Innovation &ndash; Partnership
+    Evolutions; Curate a System of Systems; Pioneer National Service Lines; Health Equity; Harmonize). Each persona/initiative
+    cell carries a business-priority weight, so a system that serves high-priority combinations scores higher than one that
+    serves only low-priority ones.</p>
+
+    <h3 class="glossary-h3">Two scores: readiness and value</h3>
+    <p>Each system gets two separate scores. <strong>Readiness</strong> answers "can it connect to Data 360?" It is a
+    weighted average of the seven technical areas, using the weights shown above (rounded). <strong>REWIRE 2030 value</strong> answers
+    "should it connect?" It comes from the Initiative Contribution matrix and reads High (3.5 or more), Medium (2.5 to 3.5),
+    Low (under 2.5) or Not relevant. Together they drive each system's roadmap placement: whether it should connect to
+    Data 360, and if so, when. A system can be ready but low in value, or high in value with gaps to close first.</p>
+    <p>Salesforce orgs score Data Accessibility and Downstream Readiness on the native Data 360 connector and activation,
+    not on what each org connects to today. The effort to set up those connections shows in the roadmap.</p>
+
+    <h3 class="glossary-h3">How to read each section of this dashboard</h3>
+    <ul class="glossary-list">
+        <li><strong>Ranked Scorecard</strong> — every system ordered by readiness score, with its REWIRE 2030 value beside it. Start here for the "who's ready" answer.
+        The <em>Top Gap</em> column names each system's lowest-scoring dimension — the first thing to fix.</li>
+        <li><strong>Dimension Analysis</strong> — the radar compares the shape of each system's strengths/weaknesses across all
+        eight dimensions; the bar chart ranks overall scores. Use the radar to spot <em>patterns</em> (e.g. consent is weak
+        estate-wide).</li>
+        <li><strong>Assessment Progress</strong> — what has been assessed, what is queued, and what is out of scope.</li>
+        <li><strong>System Detail Cards</strong> — the evidence behind every score, written for both audiences (see below),
+        plus key observations and recommendations.</li>
+        <li><strong>Roadmap</strong>: when each system is planned to be assessed, connected to Data 360, merged or
+        retired, along with program milestones, each system's Data 360 potential and value for REWIRE 2030, and
+        changes to watch. Dates are planning targets to confirm with each system owner.</li>
+    </ul>
+
+    <div class="audience-grid">
+        <div class="audience-card">
+            <h4>If you're a business stakeholder</h4>
+            <p>Focus on the <strong>label</strong> (Strong support / Partial readiness / Significant gaps), the
+            <strong>Top Gap</strong>, and the <strong>Key Observations &amp; Recommendations</strong> on each card. These tell you
+            what a system can do for patients/members today and what has to change before it can be relied on — without needing
+            the technical detail.</p>
+        </div>
+        <div class="audience-card">
+            <h4>If you're a technical stakeholder</h4>
+            <p>Read the per-dimension <strong>evidence</strong> on each card: it names the integrations, identifiers, record
+            volumes, sync cadences, and constraints behind the number. Each dimension's evidence is written as
+            "Business: &hellip; Technical: &hellip;" so you can jump straight to the architecture-relevant part and the
+            <strong>Next Steps</strong>.</p>
+        </div>
+    </div>
+    
+    </section>
+    </div><!-- /tab-explainer -->
+</div>
+
+<script>
+// Radar Chart - Comparative
+const radarCtx = document.getElementById('radarChart').getContext('2d');
+new Chart(radarCtx, {
+    type: 'radar',
+    data: {
+        labels: ["Initiative Contribution", "Identity Data Quality", "Data Readiness", "Event Readiness", "Data Accessibility", "Consent Maturity", "Data Scale & Velocity", "Downstream Readiness"],
+        datasets: [{"label": "SE - Carolinas Medical Center Atrium Health", "data": [3.41, 4.0, 4, 4, 4, 3, 5, 4], "backgroundColor": "rgba(54, 162, 235, 0.2)", "borderColor": "rgba(54, 162, 235, 1)", "borderWidth": 2, "pointBackgroundColor": "rgba(54, 162, 235, 1)"}, {"label": "SE - Marketing Cloud", "data": [4.17, 4.0, 4, 4, 4, 4, 4, 4], "backgroundColor": "rgba(255, 99, 132, 0.2)", "borderColor": "rgba(255, 99, 132, 1)", "borderWidth": 2, "pointBackgroundColor": "rgba(255, 99, 132, 1)"}, {"label": "MW - Marketing Cloud", "data": [4.05, 4.25, 4, 4, 4, 3, 4, 4], "backgroundColor": "rgba(75, 192, 192, 0.2)", "borderColor": "rgba(75, 192, 192, 1)", "borderWidth": 2, "pointBackgroundColor": "rgba(75, 192, 192, 1)"}, {"label": "MW - Org 7 Golden Org", "data": [3.62, 3.69, 4, 4, 4, 3, 4, 4], "backgroundColor": "rgba(255, 206, 86, 0.2)", "borderColor": "rgba(255, 206, 86, 1)", "borderWidth": 2, "pointBackgroundColor": "rgba(255, 206, 86, 1)"}, {"label": "CipherHealth", "data": [3.5, 3.4, 3, 4, 4, 3, 4, 3], "backgroundColor": "rgba(153, 102, 255, 0.2)", "borderColor": "rgba(153, 102, 255, 1)", "borderWidth": 2, "pointBackgroundColor": "rgba(153, 102, 255, 1)"}, {"label": "NRC Health", "data": [3.25, 3.5, 3, 3, 4, 3, 4, 0], "backgroundColor": "rgba(255, 159, 64, 0.2)", "borderColor": "rgba(255, 159, 64, 1)", "borderWidth": 2, "pointBackgroundColor": "rgba(255, 159, 64, 1)"}, {"label": "MW Org 6 - Classes and Events", "data": [3.11, 3.25, 4, 3, 4, 1, 4, 4], "backgroundColor": "rgba(199, 199, 199, 0.2)", "borderColor": "rgba(199, 199, 199, 1)", "borderWidth": 2, "pointBackgroundColor": "rgba(199, 199, 199, 1)"}, {"label": "MW - Org 3 Aurora Consolidated Labs", "data": [2.63, 3.68, 3, 2, 4, 3, 3, 4], "backgroundColor": "rgba(83, 102, 255, 0.2)", "borderColor": "rgba(83, 102, 255, 1)", "borderWidth": 2, "pointBackgroundColor": "rgba(83, 102, 255, 1)"}, {"label": "MW - Employer Services", "data": [2.41, 2.63, 3, 3, 4, 2, 2, 4], "backgroundColor": "rgba(255, 99, 255, 0.2)", "borderColor": "rgba(255, 99, 255, 1)", "borderWidth": 2, "pointBackgroundColor": "rgba(255, 99, 255, 1)"}, {"label": "MW - Org 2 Mission and Spiritual Care", "data": [2.6, 2.75, 3, 2, 4, 2, 2, 4], "backgroundColor": "rgba(99, 255, 132, 0.2)", "borderColor": "rgba(99, 255, 132, 1)", "borderWidth": 2, "pointBackgroundColor": "rgba(99, 255, 132, 1)"}, {"label": "Finance", "data": [0, 2.0, 3, 3, 4, 1, 2, 4], "backgroundColor": "rgba(255, 180, 99, 0.2)", "borderColor": "rgba(255, 180, 99, 1)", "borderWidth": 2, "pointBackgroundColor": "rgba(255, 180, 99, 1)"}, {"label": "SE - Employer Solutions", "data": [2.25, 1.75, 2, 3, 4, 2, 2, 4], "backgroundColor": "rgba(99, 200, 255, 0.2)", "borderColor": "rgba(99, 200, 255, 1)", "borderWidth": 2, "pointBackgroundColor": "rgba(99, 200, 255, 1)"}, {"label": "Form.io", "data": [2.57, 2.5, 2, 3, 3, 1, 0, 0], "backgroundColor": "rgba(54, 162, 235, 0.2)", "borderColor": "rgba(54, 162, 235, 1)", "borderWidth": 2, "pointBackgroundColor": "rgba(54, 162, 235, 1)"}, {"label": "Yext", "data": [2.83, 3.0, 2, 0, 0, 1, 0, 0], "backgroundColor": "rgba(255, 99, 132, 0.2)", "borderColor": "rgba(255, 99, 132, 1)", "borderWidth": 2, "pointBackgroundColor": "rgba(255, 99, 132, 1)"}]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            r: {
+                min: 0,
+                max: 5,
+                ticks: { stepSize: 1 },
+                pointLabels: { font: { size: 10 } }
+            }
+        },
+        plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 10 } } }
+        }
+    }
+});
+
+// Bar Chart - Ranked Scores
+const barCtx = document.getElementById('barChart').getContext('2d');
+new Chart(barCtx, {
+    type: 'bar',
+    data: {
+        labels: ["SE - Carolinas Medical Center ", "SE - Marketing Cloud", "MW - Marketing Cloud", "MW - Org 7 Golden Org", "CipherHealth", "NRC Health", "MW Org 6 - Classes and Events", "MW - Org 3 Aurora Consolidated", "MW - Employer Services", "MW - Org 2 Mission and Spiritu", "Finance", "SE - Employer Solutions", "Form.io", "Yext"],
+        datasets: [{
+            label: 'Readiness Score',
+            data: [4.0, 4.0, 3.94, 3.82, 3.43, 3.4, 3.38, 3.31, 2.97, 2.88, 2.72, 2.62, 2.31, 2.19],
+            backgroundColor: ["rgba(72, 187, 120, 0.8)", "rgba(72, 187, 120, 0.8)", "rgba(237, 181, 49, 0.8)", "rgba(237, 181, 49, 0.8)", "rgba(237, 181, 49, 0.8)", "rgba(237, 181, 49, 0.8)", "rgba(237, 181, 49, 0.8)", "rgba(237, 181, 49, 0.8)", "rgba(237, 137, 54, 0.8)", "rgba(237, 137, 54, 0.8)", "rgba(237, 137, 54, 0.8)", "rgba(237, 137, 54, 0.8)", "rgba(237, 137, 54, 0.8)", "rgba(237, 137, 54, 0.8)"],
+            borderWidth: 0,
+            borderRadius: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        scales: {
+            x: { min: 0, max: 5, ticks: { stepSize: 1 } },
+            y: { ticks: { font: { size: 11 } } }
+        },
+        plugins: {
+            legend: { display: false }
+        }
+    }
+});
+
+// ---- Tab switching ----
+document.querySelectorAll('.tab-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        var target = btn.getAttribute('data-tab');
+        document.querySelectorAll('.tab-btn').forEach(function (b) {
+            var on = b === btn;
+            b.classList.toggle('active', on);
+            b.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        document.querySelectorAll('.tab-panel').forEach(function (p) {
+            p.classList.toggle('active', p.id === 'tab-' + target);
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+});
+</script>
+</body>
+</html>
